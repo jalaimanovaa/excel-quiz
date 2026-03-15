@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel Data Analitika — Advanced Quiz</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700&display=swap');
+:root{
+  --bg:#070312;--s2:rgba(255,255,255,.07);--bd:rgba(155,77,255,.18);--bd2:rgba(155,77,255,.35);
+  --a:#9b4dff;--a2:#c879ff;--a3:#6d28d9;--t:#f0e6ff;--t2:#b89fd4;--t3:#7a60a0;
+  --gr:#22d3a5;--re:#ff5f7e;--ye:#fbbf24;--bl:#60a5fa;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 20% 0%,rgba(109,40,217,.18),transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(155,77,255,.12),transparent 50%);min-height:100vh;color:var(--t);font-family:'Nunito',sans-serif;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(rgba(155,77,255,.07) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0}
+#app{position:relative;z-index:1;min-height:100vh}
+button{cursor:pointer;border:none;outline:none;font-family:'Nunito',sans-serif}
+input,textarea{outline:none;font-family:'Nunito',sans-serif}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(155,77,255,.4);border-radius:3px}
+.card{background:var(--s2);border:1px solid var(--bd);border-radius:20px;backdrop-filter:blur(20px)}
+.glow{box-shadow:0 0 40px rgba(155,77,255,.25),inset 0 1px 0 rgba(255,255,255,.06)}
+.mono{font-family:'JetBrains Mono',monospace}
+.syne{font-family:'Syne',sans-serif}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.1)}}
+.fu{animation:fadeUp .4s ease both}
+.fi{animation:fadeIn .3s ease both}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ═══════════════════════════════════════════
+// NPOINT.IO SHARED DATABASE
+// ═══════════════════════════════════════════
+const NP = "https://api.npoint.io/efd667bce617571723b4";
+
+async function dbLoad(){
+  try{
+    const r=await fetch(NP+"?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok)return lLoad();
+    const d=await r.json();
+    return Array.isArray(d.participants)?d.participants:[];
+  }catch{return lLoad();}
+}
+async function dbSave(p){
+  try{
+    const cur=await dbLoad();
+    const i=cur.findIndex(x=>x.name===p.name);
+    if(i>=0)cur[i]=p;else cur.push(p);
+    await fetch(NP,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({participants:cur})});
+    lSave(cur);
+    return true;
+  }catch{
+    const cur=lLoad();
+    const i=cur.findIndex(x=>x.name===p.name);
+    if(i>=0)cur[i]=p;else cur.push(p);
+    lSave(cur);
+    return false;
+  }
+}
+async function dbClear(){
+  try{
+    await fetch(NP,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({participants:[]})});
+    lSave([]);
+  }catch{lSave([]);}
+}
+function lLoad(){try{const s=localStorage.getItem("qbkp");return s?JSON.parse(s):[]}catch{return[]}}
+function lSave(l){try{localStorage.setItem("qbkp",JSON.stringify(l))}catch{}}
+
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+const QS=[
+{id:1,cat:"Sintaksis",q:"XLOOKUP funksiyasının düzgün sintaksisi hansıdır?",o:["=XLOOKUP(axtarış_dəyəri, axtarış_massivi, qaytarma_massivi, [tapılmadıqda], [uyğunlaşma_rejimi], [axtarış_rejimi])","=XLOOKUP(axtarış_massivi, axtarış_dəyəri, qaytarma_massivi)","=XLOOKUP(dəyər, cədvəl, sütun_nömrəsi, [diapazon_axtarışı])","=XLOOKUP(axtarış_dəyəri, cədvəl_massivi, [tapılmadıqda])"],c:0,e:"XLOOKUP 6 arqumentdən ibarətdir: axtarış_dəyəri (məcburi), axtarış_massivi (məcburi), qaytarma_massivi (məcburi), tapılmadıqda (isteğe bağlı), uyğunlaşma_rejimi (default 0=tam uyğunluq), axtarış_rejimi (default 1=əvvəldən axıra)."},
+{id:2,cat:"Sintaksis",q:"KPI hesablamalarında istifadə olunan CALCULATE funksiyası hansı mühitdə işləyir?",o:["Excel Formula Bar","Power BI / Power Pivot DAX","VBA Editor","Power Query M dili"],c:1,e:"CALCULATE DAX dilinin funksiyasıdır — Power BI, Power Pivot, Analysis Services. Excel-in adi formula barında işləmir. DAX = Data Analysis Expressions."},
+{id:3,cat:"Sintaksis",q:"Pivot Table-da dəyəri ümumi cəmin faizi kimi göstərmək üçün?",o:["Value Field Settings → Show Values As → % of Grand Total","Format Cells → Percentage","Number Format → Custom → 0%","Pivot Table Options → Display → Show as percentage"],c:0,e:"Value Field Settings → 'Show Values As' → '% of Grand Total'. Alternativ: % of Row Total, % of Column Total da mövcuddur."},
+{id:4,cat:"Sintaksis",q:"XLOOKUP-un 4-cü arqumenti [if_not_found] nə üçündür?",o:["Axtarış rejimini təyin etmək","Dəyər tapılmadıqda göstəriləcək nəticəni müəyyən etmək","Uyğunlaşma növünü seçmək","Qaytarma sütununun sayını təyin etmək"],c:1,e:"[if_not_found] - tapılmadıqda alternativ nəticə göstərir. Məs: =XLOOKUP(A1,B:B,C:C,\"Tapılmadı\"). Bu, IFERROR(XLOOKUP(...)) yazmağı əvəz edir."},
+{id:5,cat:"Sintaksis",q:"Pivot Table-da Slicer necə əlavə edilir?",o:["Insert → Table → Slicer","PivotTable Analyze → Insert Slicer","Data → Filter → Slicer","View → Slicer Panel"],c:1,e:"Pivot Table seçili ikən PivotTable Analyze → Insert Slicer. Alternativ: Insert tabından da Slicer seçmək mümkündür."},
+{id:6,cat:"Sintaksis",q:"SUMIF funksiyasının düzgün sintaksisi?",o:["=SUMIF(cəmlənəcək_diapazon, şərt, şərt_diapazonu)","=SUMIF(şərt_diapazonu, şərt, cəmlənəcək_diapazon)","=SUMIF(şərt, şərt_diapazonu, cəmlənəcək_diapazon)","=SUMIF(diapazon, şərt)"],c:1,e:"SUMIF(range, criteria, sum_range) — əvvəlcə şərt diapazonu, sonra şərt, sonra cəmlənəcək diapazon."},
+{id:7,cat:"Sintaksis",q:"COUNTIFS funksiyasında maksimum neçə şərt cütü istifadə edilə bilər?",o:["Maksimum 2","Maksimum 5","Maksimum 127 şərt cütü","Yalnız 1"],c:2,e:"COUNTIFS-də 127-yə qədər criteria_range/criteria cütü istifadə mümkündür."},
+{id:8,cat:"Sintaksis",q:"Excel-də mütləq istinad (absolute reference) üçün hansı simvol?",o:["@ simvolu","# simvolu","$ simvolu","& simvolu"],c:2,e:"$ simvolu: $A$1 (həm sütun, həm sətir sabit), $A1 (yalnız sütun), A$1 (yalnız sətir). F4 klavişi avtomatik dövrəyə salır."},
+{id:9,cat:"Sintaksis",q:"Pivot Table-da 'Calculated Field' nə üçün?",o:["Mövcud sahələrdən formula ilə yeni sahə yaratmaq","Xarici mənbədən məlumat çəkmək","Pivot Table-ı kopyalamaq","Cədvəl formatını dəyişmək"],c:0,e:"Calculated Field: mövcud Pivot sahələrindən yeni hesablanmış sahə. PivotTable Analyze → Fields, Items & Sets → Calculated Field."},
+{id:10,cat:"Sintaksis",q:"XLOOKUP [match_mode] = -1 nə deməkdir?",o:["Tam uyğunluq","Böyük və ya tam uyğun","Kiçik və ya tam uyğun (next smaller item)","Wildcard axtarışı"],c:2,e:"Match_mode: 0=tam uyğun(default), -1=tam uyğun yaxud növbəti kiçik, 1=tam uyğun yaxud növbəti böyük, 2=wildcard."},
+{id:11,cat:"Sintaksis",q:"AVERAGEIF sintaksisi hansıdır?",o:["=AVERAGEIF(ortalama_diapazon, şərt_diapazonu, şərt)","=AVERAGEIF(şərt_diapazonu, şərt, [ortalama_diapazon])","=AVERAGEIF(şərt, diapazon, ortalama_diapazon)","=AVERAGEIF(diapazon1, diapazon2, şərt)"],c:1,e:"AVERAGEIF(range, criteria, [average_range]) — SUMIF ilə eyni sintaksis."},
+{id:12,cat:"Sintaksis",q:"Pivot Table Timeline nə üçün istifadə olunur?",o:["Pivot Chart-a animasiya əlavə etmək","Tarix sahəsinə görə interaktiv filtrasiya","Məlumatları xronoloji sıralalamaq","Həftəlik hesabat yaratmaq"],c:1,e:"Timeline: tarix sahəsi olan Pivot Table-larda ay/rüb/il kimi interaktiv zaman filtrası."},
+{id:13,cat:"Sintaksis",q:"KPI-da Target Achievement % necə hesablanır?",o:["= (Hədəf / Faktiki) × 100","= (Faktiki / Hədəf) × 100","= (Faktiki − Hədəf) × 100","= ABS(Faktiki − Hədəf) / Hədəf × 100"],c:1,e:"Achievement % = (Faktiki / Hədəf) × 100. Variance % = (Faktiki−Hədəf)/Hədəf×100 müsbət/mənfi sapmanı göstərir."},
+{id:14,cat:"Sintaksis",q:"IFERROR hansı xətaları idarə edir?",o:["Yalnız #DIV/0!","Yalnız #N/A","İstənilən xəta (#N/A, #VALUE!, #REF!, #DIV/0! və s.)","Formulada xəbərdarlıq verir"],c:2,e:"IFERROR(dəyər, xəta_halında) — istənilən xəta növünü tutur. Yalnız #N/A üçün IFNA daha spesifikdir."},
+{id:15,cat:"Sintaksis",q:"Pivot Table-da tarix sahəsini 'Group' etmək nə edir?",o:["Tarixləri əlifba ilə sıralayır","İl, rüb, ay, həftə, gün kimi qruplara bölür","Tarixləri birləşdirir","Duplicate tarixləri silir"],c:1,e:"Tarix sahəsini sağ klik → Group → Günlər/Aylar/Rüblar/İllər seçimi."},
+{id:16,cat:"Sintaksis",q:"XLOOKUP ilə eyni anda neçə sütun qaytarmaq olar?",o:["Yalnız 1","Maksimum 3","return_array çox sütunlu olarsa sonsuz","Maksimum 10"],c:2,e:"return_array = C:E kimi çox sütunlu diapazon verildikdə XLOOKUP bütün sütunları qaytarır (spill). VLOOKUP-dan ən böyük üstünlük."},
+{id:17,cat:"Sintaksis",q:"TEXT funksiyasında tarixi 'DD/MM/YYYY' formatına çevirmək üçün?",o:["=TEXT(A1, \"DD-MM-YYYY\")","=TEXT(A1, \"DD/MM/YYYY\")","=FORMAT(A1, \"DD/MM/YYYY\")","=DATEFORMAT(A1, \"DD/MM/YYYY\")"],c:1,e:"=TEXT(dəyər, format) — rəqəm/tarixi mətnə çevirir. Format kodu qoşa dırnaqda yazılır."},
+{id:18,cat:"Sintaksis",q:"Named Range (adlandırılmış diapazon) nə üçün?",o:["Xanaların rəngini dəyişmək","Formulalarda diapazonlara məna ifadəli ad vermək","Başlıqları avtomatik yaratmaq","Məlumatları sıralamaq"],c:1,e:"Named Range: =SUM(Satışlar) kimi oxunaqlı formullar. Formulas → Name Manager."},
+{id:19,cat:"Sintaksis",q:"Pivot Table Value Field Settings-də hansı hesablama növləri var?",o:["Yalnız Sum və Count","Sum, Count, Average, Max, Min, Product, StdDev, Var","Yalnız Sum, Average, Count","Sum, Count, Average, Median, Mode"],c:1,e:"11 növ: Sum, Count, Average, Max, Min, Product, Count Numbers, StdDev, StdDevp, Var, Varp."},
+{id:20,cat:"Sintaksis",q:"VLOOKUP-a qarşı XLOOKUP-un əsas üstünlüyü?",o:["XLOOKUP daha sürətlidir","XLOOKUP sola da baxa bilər, default tam uyğunluq, çox sütun qaytarır","XLOOKUP köhnə versiyalarda işləyir","XLOOKUP rəqəmləri daha yaxşı işləyir"],c:1,e:"XLOOKUP üstünlükləri: sola baxır; default tam uyğunluq; çox sütun; [if_not_found]; sütun dəyişdikdə xəta yoxdur."},
+{id:21,cat:"Sintaksis",q:"SUMPRODUCT nə edir?",o:["Yalnız iki massivi cəmləyir","Massivin hər elementini uyğun elementlə vurub nəticələri cəmləyir","Bütün elementləri bir-birinə vurur","İki cədvəli birləşdirir"],c:1,e:"SUMPRODUCT(massiv1, massiv2) — eyni mövqedəki elementləri vurub cəmləyir."},
+{id:22,cat:"Sintaksis",q:"Data Validation harada tapılır?",o:["Home → Data Tools → Validation","Data → Data Tools → Data Validation","Review → Data Validation","Insert → Data Validation"],c:1,e:"Data → Data Tools → Data Validation."},
+{id:23,cat:"Sintaksis",q:"Pivot Table-da Refresh nə zaman edilməlidir?",o:["Yalnız Excel açıldıqda","Mənbə məlumatlar dəyişdikdən sonra","Hər 5 dəqiqədə bir","Yalnız Pivot Chart əlavə edildikdə"],c:1,e:"Mənbə dəyişdikdən sonra: PivotTable Analyze → Refresh (Alt+F5). Refresh All = Ctrl+Alt+F5."},
+{id:24,cat:"Sintaksis",q:"INDIRECT funksiyası nə edir?",o:["Əks istiqamətdə axtarış","Mətn kimi yazılmış ünvanı real istinadə çevirir","Massivi tərsinə çevirir","Dolayı hesablamalar edir"],c:1,e:"INDIRECT(\"mətn_ünvan\") — mətn sətri kimi verilmiş xana ünvanını real istinadə çevirir."},
+{id:25,cat:"Sintaksis",q:"Conditional Formatting ilə top 10% vurğulamaq üçün hansı qayda?",o:["Highlight Cells → Greater Than","Top/Bottom Rules → Top 10%","Data Bars → Top Values","New Rule → Formula → TOP()"],c:1,e:"Conditional Formatting → Top/Bottom Rules → Top 10%."},
+{id:26,cat:"Sintaksis",q:"LARGE funksiyası nə edir?",o:["Ən böyük dəyəri qaytarır","Diapazondakı n-ci ən böyük dəyəri qaytarır","Dəyəri böyük hərflərə çevirir","Massivin ölçüsünü qaytarır"],c:1,e:"LARGE(diapazon, k) — k-cı ən böyük dəyər. =LARGE(A1:A100,1)=MAX, =LARGE(...,2)=ikinci ən böyük."},
+{id:27,cat:"Sintaksis",q:"INDEX-MATCH kombinasiyasında INDEX-in rolu?",o:["Dəyərin sıra nömrəsini tapır","Sıra/sütun nömrəsi ilə massivdən dəyər qaytarır","Massivi indeksləşdirir","Axtarış şərtini müəyyən edir"],c:1,e:"INDEX(massiv, sıra, [sütun]) — göstərilən koordinatdakı dəyəri qaytarır."},
+{id:28,cat:"Sintaksis",q:"Pivot Table 'Show Values As → Running Total' nə göstərir?",o:["Yalnız seçilmiş sətrin cəmini","Kumulyativ (artan) cəm — hər sətir əvvəlkilərə əlavə olunur","Hər dəyərin ümumi cəmə faizini","Sıralı dəyərləri"],c:1,e:"Running Total = kumulyativ cəm. Aylıq satışda YTD (Year-to-Date) göstərir."},
+{id:29,cat:"Sintaksis",q:"MATCH funksiyasında match_type=0 nə deməkdir?",o:["Kiçikdən böyüyə sıralı massivdə axtarış","Böyükdən kiçiyə sıralı massivdə axtarış","Tam uyğun dəyər (sıralama tələb olunmur)","Wildcard axtarışı"],c:2,e:"MATCH: 0=tam uyğunluq(sıralama lazım deyil), 1=kiçik/bərabər, -1=böyük/bərabər."},
+{id:30,cat:"Sintaksis",q:"Pivot Table-da Data Model (çoxlu cədvəl) üçün nə lazımdır?",o:["Bütün məlumatları bir cədvələ yığmaq","Power Pivot/Data Model aktivləşdirmək, cədvəllər arası əlaqə qurmaq","VLOOKUP ilə birləşdirmək","Bu yalnız Power BI-da mövcuddur"],c:1,e:"Data Model: 'Add to Data Model' seçilir. Power Pivot → Relationships ilə cədvəllər birləşdirilir."},
+{id:31,cat:"Analiz",q:"Satış meneceri 2024-cü ilin hər ayı üçün filial satışlarını müqayisə etmək istəyir. Ən effektiv alət?",o:["Sadə SUM ilə aylıq cədvəl","Pivot Table: Filiallara sıralar, Aylara sütunlar, SUM(Satış)","VLOOKUP ilə hər filial ayrıca","Şərti formatlaşdırma ilə rəng vermək"],c:1,e:"Çoxölçülü müqayisə → Pivot Table. Row=Filialar, Column=Aylar, Values=SUM(Satış). Dinamik, sürətli."},
+{id:32,cat:"Analiz",q:"HR departamenti 500 işçinin ortalama maaşını şöbəyə görə hesablamaq istəyir. Ən effektiv?",o:["Hər şöbə üçün ayrı sheet","AVERAGEIF hər şöbə üçün ayrıca yazılır","Pivot Table: Şöbə Row-da, Average of Maaş","Əl ilə sıralayıb hesablamaq"],c:2,e:"Pivot Table: Şöbəni Row-a, Maaşı Values-a → Average. Bütün şöbələr eyni anda."},
+{id:33,cat:"Analiz",q:"Maliyyəçi müxtəlif valyutalı əməliyyatları AZN-ə çevirmək istəyir. Ən müasir formula?",o:["=A2*VLOOKUP(B2,Kurslar!A:B,2,FALSE)","=A2*XLOOKUP(B2,Kurslar!A:A,Kurslar!B:B,0)","=A2*INDEX(Kurslar!B:B,MATCH(B2,Kurslar!A:A,0))","Hamısı düzgündür — XLOOKUP ən müasirdir"],c:3,e:"Hər üçü işləyir. XLOOKUP üstündür: oxunaqlı, [if_not_found] var, sola baxa bilər."},
+{id:34,cat:"Analiz",q:"Logistika şirkəti çatdırılma müddətini hesablamalıdır. A=sifariş tarixi, B=çatdırılma tarixi. Düzgün yanaşma?",o:["=B2-A2 (ümumi günlər)","=DATEDIF(A2,B2,\"D\")","=NETWORKDAYS(A2,B2)-1 (iş günləri)","Kontekstdən asılı: ümumi gün B2-A2, iş günü NETWORKDAYS"],c:3,e:"Kontekst vacibdir: ümumi gün=B2-A2; iş günü=NETWORKDAYS(A2,B2)-1. SLA-da iş günü standartdır."},
+{id:35,cat:"Analiz",q:"KPI dashboard: 90%+ yaşıl, 70-89% sarı, 70%-dən aşağı qırmızı. Hansı alət?",o:["IF ilə rəng kodu yazmaq","Conditional Formatting → New Rule → Formula ilə 3 qayda","Pivot Table → Conditional Formatting","Chart-da rəng vermək"],c:1,e:"CF → New Rule → Formula: =$C2>=90% → Yaşıl; =$C2>=70% → Sarı; =$C2<70% → Qırmızı."},
+{id:36,cat:"Analiz",q:"Bank kredit portfeli analizi: Məbləğ + faiz payı eyni anda görmək üçün?",o:["SUMIF hər kateqoriya üçün ayrı","Pivot Table: Kateqoriya Row, Məbləğ Sum + % of Grand Total","Sıralayıb baxmaq","Hər kateqoriya ayrı vərəq"],c:1,e:"Pivot Table: Məbləği 2 dəfə Values-a at: biri Sum, digəri % of Grand Total. Həm dəyər həm faiz."},
+{id:37,cat:"Analiz",q:"E-ticarət: hansı saatlarda çox alış olduğunu bilmək üçün datetime-dan saat çıxarmaq?",o:["=LEFT(A2,2)","=HOUR(A2)","=MID(A2,12,2)","=TIME(A2)"],c:1,e:"=HOUR(A2) — datetime-dan 0-23 arası saat rəqəmi."},
+{id:38,cat:"Analiz",q:"'AZE-2024-00123' formatından şirkət kodunu (ilk 3 hərf) çıxarmaq üçün formula?",o:["=MID(A2,1,3)","=LEFT(A2,3)","=FIND(A2,\"-\",1)-1","=TRIM(A2,3)"],c:1,e:"=LEFT(A2,3) — sətirin solundan 3 simvol."},
+{id:39,cat:"Analiz",q:"Aylıq artım faizi (MoM). Yanvar=100K, Fevral=120K. Düzgün formula?",o:["=(B2-A2)/100","=(B2-A2)/A2","=B2/A2","=(B2-A2)*100/B2"],c:1,e:"MoM % = (Cari−Əvvəlki)/Əvvəlki = (120−100)/100 = 20%."},
+{id:40,cat:"Analiz",q:"Top 5 problem kateqoriyasını tapmaq üçün?",o:["LARGE ilə top 5 dəyəri","Pivot Table azalan sırada sort edib ilk 5","COUNTIF + sonra sıralama","B və C hər ikisi — Pivot Table daha interaktiv"],c:3,e:"Hər ikisi işləyir. Pivot Table üstünlüyü: filtr, drill-down. Avtomatlaşdırma üçün COUNTIF+LARGE."},
+{id:41,cat:"Analiz",q:"Bonus: 1M+= 15%, 500K-1M=10%, <500K=5%. Formula?",o:["=IF(C2>=1000000,C2*15%,IF(C2>=500000,C2*10%,C2*5%))","=IF(C2<500000,C2*5%,IF(C2<1000000,C2*10%,C2*15%))","=IFS(C2>=1000000,C2*15%,C2>=500000,C2*10%,TRUE,C2*5%)","Hamısı düzgündür — IFS daha oxunaqlıdır"],c:3,e:"Üç variant eyni nəticə. IFS (Excel 2019+) ən oxunaqlıdır."},
+{id:42,cat:"Analiz",q:"NPS: Promoters 45%, Detractors 20%. NPS nədir?",o:["25","65","20","45"],c:0,e:"NPS = Promoters% − Detractors% = 25."},
+{id:43,cat:"Analiz",q:"İşçi stajını illə hesablamaq. Daha dəqiq metod?",o:["=(TODAY()-A2)/365","=DATEDIF(A2,TODAY(),\"Y\")","=YEAR(TODAY())-YEAR(A2)","B — DATEDIF tam keçilmiş ili sayır"],c:3,e:"DATEDIF(A2,TODAY(),\"Y\") tam keçilmiş il sayını verir."},
+{id:44,cat:"Analiz",q:"XLOOKUP ilə tapılmadıqda 'Anbarda yoxdur' yazmaq?",o:["=IFERROR(XLOOKUP(A2,M!A:A,M!C:C),\"Anbarda yoxdur\")","=XLOOKUP(A2,M!A:A,M!C:C,\"Anbarda yoxdur\")","=XLOOKUP(A2,M!A:A,M!C:C,0,\"Anbarda yoxdur\")","A və B hər ikisi — B daha qısa"],c:3,e:"B daha müasir sintaksis — 4-cü arqument birbaşa not_found cavabı."},
+{id:45,cat:"Analiz",q:"Anbar: məhsul neçə günə bitir? Stok=A2, Gündəlik satış=B2.",o:["=A2/B2","=A2-B2","=B2/A2","=A2*B2"],c:0,e:"Days of Supply = Stok/Gündəlik Satış = A2/B2."},
+{id:46,cat:"Analiz",q:"Bar chart: Q1=850K, Q2=920K, Q3=780K, Q4=1100K. YoY müqayisəsi üçün hansı rüb hədəf seçilməlidir?",o:["Q1 — ən aşağı olduğu üçün","Q4 — ən yüksək nəticəni göstərdiyi üçün","Bütün rüblər — mövsümilik effekti üçün eyni rüb ilə müqayisə","Q2 — ən yüksək artım olduğu üçün"],c:2,e:"YoY: Q1 2024 vs Q1 2023 — mövsümilik effektini neytralizə edir."},
+{id:47,cat:"Analiz",q:"Line chart-da Mart-Aprel arası kəskin düşüş var. İlk addım?",o:["Chartı dərhal silib yenidən yaratmaq","Pivot Table-da Mart/Aprel üzərinə cift klik — Drill Down","Proqnozu manual düzəltmək","Rüblük görünüşə keçmək"],c:1,e:"Drill Down: dəyərə cift klik → xam məlumat yeni sheet-də açılır."},
+{id:48,cat:"Analiz",q:"Bakı=420K, Gəncə=180K, Sumqayıt=210K, Lənkəran=95K, Mingəçevir=140K. Pareto: hansı filiallara fokus?",o:["Yalnız Bakı","Bakı + Sumqayıt + Gəncə — ~80% verir","Bütün filiallar bərabər","Lənkəran + Mingəçevir — inkişaf potensialı"],c:1,e:"Pareto: Bakı(40%)+Sumqayıt(20%)+Gəncə(17%)=77%. Bu 3 filial ümumi satışın ~80%-ni verir."},
+{id:49,cat:"Analiz",q:"Waterfall: Gəlir 2.1M, Xərclər -850K, Endirim -120K, Vergi -180K. Xalis gəlir?",o:["950K","1.25M","1.35M","2.1M"],c:0,e:"2100-850-120-180 = 950K."},
+{id:50,cat:"Analiz",q:"Scatter Plot: X=Reklam Xərci, Y=Satış. Trendline R²=0.87 nə deməkdir?",o:["87% dəqiqliklə proqnoz","Satışın variasiyasının 87%-i reklam ilə izah olunur","Reklam 87% effektiv","R²=0.87 zəif korrelyasiya"],c:1,e:"R²=0.87: Y variasiyasının 87%-i X tərəfindən izah olunur. Güclü əlaqə."},
+{id:51,cat:"Analiz",q:"Stacked Bar: Bakı=Ərzaq(45%)+Elektronika(30%)+Geyim(25%). Elektronikanın real məbləği üçün?",o:["Chart üzərindən hesablamaq","Pivot Table-da kateqoriya filtrasiya edib Sum","Chart-dan oxumaq (qeyri-dəqiq)","Məhsul sayı kifayətdir"],c:1,e:"Chart vizual trend üçün, dəqiq rəqəm üçün Pivot Table."},
+{id:52,cat:"Analiz",q:"Net Gəlir 285K, Ümumi Gəlir 1.5M. NPM nədir?",o:["19%","5.26x","1,215K","52.6%"],c:0,e:"NPM = 285K/1500K × 100 = 19%."},
+{id:53,cat:"Analiz",q:"Combo Chart: satış Bar (sol ox) + kumulyativ % Line (sağ ox). Bu hansı analiz?",o:["Trend Analizi","Pareto Diaqramı","Korrelyasiya","Dövr müqayisəsi"],c:1,e:"Pareto Diaqramı: azalan bar + kumulyativ line. 80% xəttini kəsən kateqoriyalar kritikdir."},
+{id:54,cat:"Analiz",q:"Pivot Table-da Heat Map (çox=tünd, az=açıq) ən sürətli metod?",o:["Manual rəng","Conditional Formatting → Color Scales","Chart ilə","VBA makro"],c:1,e:"CF → Color Scales → 3 rəngli şkala. Pivot Table üzərindən tətbiq olunur."},
+{id:55,cat:"Analiz",q:"Sparkline nə üçün?",o:["Böyük chart yaratmaq","Xana içərisində mini trend/bar göstərmək","Çap formatı","Pivot Chart kiçiltmək"],c:1,e:"Sparkline: xana içərisində mini vizualizasiya. Insert → Sparklines."},
+{id:56,cat:"Analiz",q:"5 satıcının digərlərinə nisbətən faizini göstərən ən sürətli metod?",o:["SUMIF formula","Pivot → Show Values As → % of Column Total","Hər satışı əl ilə bölmək","Ayrı hesabat"],c:1,e:"Show Values As → % of Column Total: hər satıcının aylıq faizi."},
+{id:57,cat:"Analiz",q:"Slicer ilə 3 Pivot Table filterlənir. 2-ci cavab vermir. Səbəb?",o:["Slicer xarab","2-ci Pivot Table Slicer-in Report Connections-ına bağlanmayıb","Excel restart","Başqa mənbə"],c:1,e:"Slicer → sağ klik → Report Connections → Pivot-ları işarələ."},
+{id:58,cat:"Analiz",q:"Line Chart-da mövsümi dalğalanma var. Əsas trendi göstərmək üçün?",o:["Datanı silmək","Add Trendline → Moving Average (3-6 aylıq)","Yalnız Q1 datası","Pie chart-a keç"],c:1,e:"Moving Average Trendline: mövsümilik hamarlanır, əsas trend görünür."},
+{id:59,cat:"Analiz",q:"Dinamik Dashboard: açılan siyahıdan ay seçilir, chartlar avtomatik yenilənir. Struktur?",o:["Hər ay ayrı sheet","Data Validation siyahısı + Slicer + Pivot Chart","Formula bar-dan dəyişmək","Manual yeniləmək"],c:1,e:"Data Validation dropdown + Slicer + Pivot Chart. Seçim dəyişdikdə bütün tablolar sinxron."},
+{id:60,cat:"Analiz",q:"12 aylıq bar chart. 'Below average' ayları vizual vurğulamaq?",o:["Manual rəng","Chart-da Average reference line — ortalama xəttinin altındakılar görünür","Ayrı seriyaya çevir","Şərti formatlaşdırma"],c:1,e:"Ortalama üçün köməkçi sütun (AVERAGE), Pivot Chart-a Line series kimi əlavə et."},
+{id:61,cat:"Analiz",q:"Satış nümayəndəsinin ümumi, filial, şirkət faizlərini bir Pivot-da görmək?",o:["3 ayrı SUMIF","Satışı 3 dəfə Values-a: Sum + % of Parent + % of Grand Total","3 ayrı Pivot","B ən effektiv"],c:3,e:"Satışı 3 dəfə əlavə et: Sum, % of Parent, % of Grand Total."},
+{id:62,cat:"Analiz",q:"Həkim baxış müddəti: A2=giriş, B2=çıxış (datetime). Dəqiqə hesablamaq?",o:["=(B2-A2)*24*60","=MINUTE(B2-A2)","=DATEDIF(A2,B2,\"m\")","=HOUR(B2-A2)*60+MINUTE(B2-A2)"],c:0,e:"(B2-A2) gün kəsiri × 1440 = dəqiqə."},
+{id:63,cat:"Analiz",q:"Sepetə əlavə 1200, alış 840. Cart Abandonment Rate?",o:["70%","30%","360","42.86%"],c:1,e:"AR = (1200-840)/1200 = 30%."},
+{id:64,cat:"Analiz",q:"Çoxlu filtrləri saxlamaq + dəyişdirmək üçün ən yaxşı alət?",o:["Report Filter","Slicer — vizual, tez, çoxlu Pivot-a bağlanır","Manual filtrasiya","Ayrı Pivot-lar"],c:1,e:"Slicer: vizual panel, Report Connections, Timeline. Dashboard interaktivliyi üçün standart."},
+{id:65,cat:"Analiz",q:"1,250,000 → 1,250K. Custom Number Format kodu?",o:["#,##0\"K\"","#,##0,\"K\"","0,\"K\"","#K"],c:1,e:"#,##0,\"K\" — vergül 1000-ə bölmə edir."},
+{id:66,cat:"Analiz",q:"CLV: Sifariş 85 AZN, Tezlik 2.3/ay, Ömür 36 ay. CLV?",o:["195.5 AZN","7,038 AZN","123.3 AZN","3,060 AZN"],c:1,e:"CLV = 85×2.3×36 = 7,038 AZN."},
+{id:67,cat:"Analiz",q:"500K+ sətirlik fayl. Sürətli analiz üçün?",o:["Bütün sütunlara VLOOKUP","Pivot Table — cache, dinamik aggregasiya","SUMIF/COUNTIF hər sahə","Parçalayıb analiz"],c:1,e:"Pivot Table 500K+-da ən effektiv. SUMIF hər dəfə bütün diapazonu tarayır."},
+{id:68,cat:"Analiz",q:"HR: ayrılanlar=8, ortalama işçi=120. Aylıq vs İllik rate?",o:["6.67%","6.25%","80% (illik)","A aylıq, C annualized — hər ikisi düzgün"],c:3,e:"Aylıq=6.67%, Annualized=80%."},
+{id:69,cat:"Analiz",q:"Marketing: Xərc 15K, Gəlir 67.5K. ROAS nədir?",o:["4.5x","350%","52,500 AZN","Hamısı düzgün — müxtəlif ifadə"],c:3,e:"ROAS=4.5x, ROI=350%, Xalis=52,500 AZN."},
+{id:70,cat:"Analiz",q:"Zaman seriyası trendi üçün ən uyğun chart?",o:["Pie Chart","Bar Chart","Line Chart","Scatter Plot"],c:2,e:"Line Chart: ardıcıl zaman nöqtələri arası trend."},
+{id:71,cat:"Analiz",q:"DSO: Debitor 450K, Gündəlik Satış 18K. DSO?",o:["25 gün","32 gün","18 gün","8.1 gün"],c:0,e:"DSO = 450K/18K = 25 gün."},
+{id:72,cat:"Analiz",q:"3 aylıq Moving Average. Yanvar=D1, Fevral=D2... Aprel üçün MA?",o:["=AVERAGE(D2:D4)","=AVERAGE(D1:D4)","=AVERAGE(D3:D5)","OFFSET ilə"],c:0,e:"Aprel üçün 3 aylıq MA = AVERAGE(Fevral,Mart,Aprel) = AVERAGE(D2:D4)."},
+{id:73,cat:"Analiz",q:"Satıcıları rütbələndirmək (1=ən yüksək)?",o:["=SORT(Satış,-1)","=RANK(C2,$C$2:$C$100,0)","=PERCENTRANK(C2)","=LARGE ilə"],c:1,e:"RANK(C2,$C$2:$C$100,0): 0=azalan."},
+{id:74,cat:"Analiz",q:"Satışları ölkə→şəhər iyerarxiyasında görmək?",o:["2 ayrı Pivot","Row-a Ölkə sonra Şəhər — drill-down iyerarxiya","Formula ilə birləşdir","Outline"],c:1,e:"Row Fields-ə ardıcıl Ölkə → Şəhər avtomatik iyerarxiya."},
+{id:75,cat:"Analiz",q:"Mövsümi biznesdə ən ədalətli KPI müqayisəsi?",o:["MoM","YoY — eyni ay","WoW","Aylıq ortalama"],c:1,e:"YoY: eyni ay müqayisəsi mövsümü neytralizə edir."},
+{id:76,cat:"Analiz",q:"Break-even: Sabit 50K, Qiymət 25, Dəyişən Xərc 15. Vahid sayı?",o:["5000 vahid","2000","3333","2000.6"],c:0,e:"50000/(25-15) = 5000 vahid."},
+{id:77,cat:"Analiz",q:"Pivot Table-da Drill Down nədir?",o:["Pivot yeniləmək","Dəyərə cift klik → xam məlumat yeni sheet-də","İyerarxiya genişlət","Sort"],c:1,e:"Show Details: xam məlumat audit üçün."},
+{id:78,cat:"Analiz",q:"XLOOKUP ilə çox sütun qaytarmaq?",o:["Hər sütun ayrı XLOOKUP","=XLOOKUP(A2,M!A:A,M!B:D) — çox sütun","INDEX-MATCH","Power Query Merge"],c:1,e:"return_array çox sütunlu diapazon = bütün sütunlar spill edir."},
+{id:79,cat:"Analiz",q:"Inventory Turnover: COGS=1.2M, Anbar=200K. Turnover?",o:["6x","0.17x","12x","1,000,000"],c:0,e:"1.2M/200K = 6x."},
+{id:80,cat:"Analiz",q:"Çoxlu hesabatları Dashboard-da birləşdirmək üçün tövsiyə?",o:["Hər Pivot ayrı fayl","Bir Cache-dən çoxlu Pivot + Slicer Report Connections","Nəhəng cədvəl","Hər Pivot ayrı diapazon"],c:1,e:"Eyni mənbədən Pivot-lar + Slicer Report Connections = sinxron filtr."},
+{id:81,cat:"Analiz",q:"İki müxtəlif vahidli (AZN + ədəd) məlumatı eyni chartda?",o:["Eyni oxda","Combo Chart + ikinci (secondary) ox","Normallaşdır","İki ayrı chart"],c:1,e:"Secondary Axis: sol ox AZN, sağ ox ədəd."},
+{id:82,cat:"Analiz",q:"'Show Report Filter Pages' nə edir?",o:["Çap üçün","Hər filtr dəyəri üçün ayrı worksheet yaradır","Filtri sıfırlar","Filtr göstərir"],c:1,e:"Hər unikal dəyər üçün ayrı sheet. Çoxlu filial hesabatları üçün böyük vaxt qənaəti."},
+{id:83,cat:"Analiz",q:"PROPER funksiyası nə edir?",o:["Böyük hərfə","Kiçik hərfə","Hər sözün ilk hərfi böyük","Boşluqları silir"],c:2,e:"=PROPER('anar həsənov') → 'Anar Həsənov'."},
+{id:84,cat:"Analiz",q:"Stacked Column: bir şöbənin artımı görünmür. Həll?",o:["Pie Chart-a keç","100% Stacked (faiz payı) yaxud Clustered (mütləq dəyər)","Şöbəni gizlət","Böyüt"],c:1,e:"Məqsədə görə: pay→100% Stacked, mütləq dəyər→Clustered Column."},
+{id:85,cat:"Analiz",q:"Çoxlu KPI scorecard bir baxışda. Ən effektiv quruluş?",o:["Hər KPI ayrı chart","Pivot Table: KPI sütun × Şöbə sıra + Color Scales","Hamısı Line Chart-da","Sadəcə cədvəl"],c:1,e:"Cross-tab + Color Scales = heat map effekti."},
+{id:86,cat:"Analiz",q:"Funnel Chart nə zaman istifadə olunur?",o:["Satış trendi","Lead→Proposal→Won mərhələlərinin azalan payı","Kateqoriya müqayisəsi","Zaman seriyası"],c:1,e:"Funnel Chart: satış pipeline, hər mərhələdəki itki."},
+{id:87,cat:"Analiz",q:"Map Chart nə vaxt faydalıdır?",o:["Hər kateqoriya üçün","Coğrafi məlumat — ölkə/vilayət üzrə satış vizualı","Vaxt seriyaları","Korrelyasiya"],c:1,e:"Map Chart: ölkə/region adlarını tanıyır, rəng intensivliyi ilə göstərir."},
+{id:88,cat:"Analiz",q:"Unikal müştəri sayı (Distinct Count) Pivot-da?",o:["Count avtomatik sayır","COUNTIF","Data Model-ə əlavə et → Distinct Count","Power Query duplikat sil"],c:2,e:"'Add to Data Model' → Value Field Settings → Distinct Count."},
+{id:89,cat:"Analiz",q:"Yanacaq sərfiyyatı L/100km. Yanacaq=A2, Məsafə=B2.",o:["=A2/B2","=A2/B2*100","=B2/A2*100","=(A2*100)/B2"],c:3,e:"L/100km = (Yanacaq×100)/Məsafə."},
+{id:90,cat:"Analiz",q:"İki dəyişənin sensitivity analizi üçün matris?",o:["Goal Seek","Scenario Manager","Data Table → Row + Column input — matris","Solver"],c:2,e:"Two-Variable Data Table: kombinasiya matrisi."},
+{id:91,cat:"Analiz",q:"Bar chart: 3 kateqoriya dəyərlərin 78%-ni təşkil edir. Bu hansı analiz?",o:["Trend Analizi","Pareto/ABC — 80/20 qaydası vizualı","Korrelyasiya","Mövsümi"],c:1,e:"Pareto/ABC: az kateqoriya böyük pay."},
+{id:92,cat:"Analiz",q:"XLOOKUP ilə 2 şərtə görə axtarış. Düzgün sintaksis?",o:["İki nested XLOOKUP","=XLOOKUP(şöbə&rütbə,A:A&B:B,C:C)","XLOOKUP çox şərtə baxmır","=XLOOKUP(1,(A:A=şöbə)*(B:B=rütbə),C:C) — Boolean massiv"],c:3,e:"=XLOOKUP(1,(A:A=E2)*(B:B=F2),C:C) — Boolean massiv: AND şərti."},
+{id:93,cat:"Analiz",q:"Stacked Area: bir şöbənin payı azalır, digəri artır. Bu nəyin işarəsi?",o:["Chart xətası","Struktur dəyişimi — resursun bir sahədən digərinə keçməsi","Yanlış hesablama","Vizual effekt"],c:1,e:"Prioritet dəyişikliyi, departament böyüməsi/kiçilməsi."},
+{id:94,cat:"Analiz",q:"Pivot Refresh edilib amma dəyişiklik görünmür. Səbəb?",o:["Excel restart","Mənbə diapazon sabit (B2:D100), yeni sıralar daxil deyil","Slicer konflikt","Köhnə versiya"],c:1,e:"Həll: Ctrl+T ilə Excel Table-ə çevir."},
+{id:95,cat:"Analiz",q:"Ay əvvəli 2400, ay sonu 2280, 60 yeni müştəri. Churn Rate?",o:["5%","7.5%","Ayrılanlar=180; Churn=7.5%","2.5%"],c:2,e:"Ayrılanlar=2400+60-2280=180. Churn=180/2400=7.5%."},
+{id:96,cat:"Analiz",q:"Waterfall Chart-da mənfi dəyərlər üçün rəng?",o:["Manual","Select Data","Waterfall özü müsbəti yaşıl, mənfini qırmızı göstərir","VBA"],c:2,e:"Excel 2016+ avtomatik rəng. Format Data Series → Set as total subtotal üçün."},
+{id:97,cat:"Analiz",q:"OEE: Planlı 1000 saat, Faktiki 873. Availability?",o:["87.3%","12.7%","873","0.873"],c:0,e:"873/1000 = 87.3%."},
+{id:98,cat:"Analiz",q:"'Laptop HP','HP Laptop','hp laptop' — eyni məhsul. Standartlaşdırma?",o:["Əl ilə","Find & Replace","LOWER+TRIM normallaşdırıb XLOOKUP ilə standart ad","Pivot Group"],c:2,e:"LOWER+TRIM+XLOOKUP lookup cədvəli."},
+{id:99,cat:"Analiz",q:"Bubble Chart: X=Satış, Y=Mənfəət, Baloncuq=Müştəri sayı. Böyük baloncuq + sağ aşağı mövqe?",o:["Çox müştəri, yüksək satış, aşağı mənfəət — risk siqnalı","Çox müştəri, yüksək satış, yüksək mənfəət","Az müştəri, aşağı satış","Mümkün deyil"],c:0,e:"Yüksək dövriyyə + az mənfəət = çox iş, az qazanc. Qiymət strategiyasını yoxla."},
+{id:100,cat:"Analiz",q:"Dinamik Pivot mənbəsi — yeni sıra əlavəsində avtomatik genişlənsin?",o:["Əl ilə genişləndir","Ctrl+T ilə Excel Table — Pivot avtomatik genişlənir","A:A mənbə göstər","Refresh All makro"],c:1,e:"Excel Table (Ctrl+T): mənbə avtomatik genişlənir."}
+];
+
+const OQS=[
+{id:"oq1",q:"Siz böyük bir pərakəndə ticarət şirkətinin baş analitikisiniz. 120 filialdan 3 illik satış — 2 milyon sıra. Baş direktor sabah rüblük performans icmalı istəyir: filial trendləri, top kateqoriyalar, regional müqayisə. Bu gün axşam nədən başlarsınız? Hansı alətlər, funksiyalar? Mümkün problemlər nələrdir? Ətraflı izah edin."},
+{id:"oq2",q:"HR direktoru: 'Şirkətimizdə turnover çox yüksəkdir — kimin nə vaxt ayrılma ehtimalı yüksəkdir?' Əlinizdə 5 illik HR tarixi: giriş/çıxış tarixi, şöbə, maaş dəyişikliyi, vəzifə, müdir bağlılığı. Excel-də bu problemi necə həll edərdiniz?"},
+{id:"oq3",q:"Maliyyə institutunun kredit risk şöbəsindəsiniz. 50K+ sıra kredit məlumatı. Risk meneceri: 'NPL artır — nə baş verir?' Pivot Table, KPI, CF, qrafiklər — hansını necə istifadə edərdiniz?"},
+{id:"oq4",q:"E-ticarət startupunda analitiksiniz. 5 kanal: Google Ads, Instagram, Email, SEO, Referral. CAC çox yüksəkdir. Hər kanalın effektivliyini ölçən Excel dashboard-u necə qurarsınız?"},
+{id:"oq5",q:"Xəstəxana KPI sistemi: pasiyent giriş/çıxış, şöbə, həkim, müalicə müddəti. 'Hansı şöbədə gözləmə uzundur? Hansı həkimin məmnuniyyəti aşağıdır?' Excel-də necə qurarsınız?"}
+];
+
+const TASK={
+  data:[
+    {ay:"Yanvar",baki:420000,gence:180000,sumqayit:210000,lenkaran:95000,mehsul:"Elektronika",xerc:310000},
+    {ay:"Fevral",baki:380000,gence:165000,sumqayit:195000,lenkaran:88000,mehsul:"Elektronika",xerc:290000},
+    {ay:"Mart",baki:510000,gence:220000,sumqayit:245000,lenkaran:112000,mehsul:"Geyim",xerc:380000},
+    {ay:"Aprel",baki:490000,gence:205000,sumqayit:230000,lenkaran:105000,mehsul:"Geyim",xerc:365000},
+    {ay:"May",baki:560000,gence:240000,sumqayit:270000,lenkaran:125000,mehsul:"Ərzaq",xerc:420000},
+    {ay:"İyun",baki:620000,gence:275000,sumqayit:310000,lenkaran:145000,mehsul:"Ərzaq",xerc:480000}
+  ],
+  tasks:[
+    "Hər filialın 6 aylıq ümumi satışını hesablayın. Hansı filial ən çox satış edir? Paylanma faizini göstərin.",
+    "Aylıq trend: hansı ayda ən yüksək artım var? MoM artım % hesablayın (bütün filiallar).",
+    "Hər ayın Gross Profit Margin = (ümumi satış − xərc)/ümumi satış. Ən yüksək ay?",
+    "Pareto: hansı filiallar satışın 80%-ni verir? Bu nə deməkdir?",
+    "Fərid bəy üçün icra xülasəsi (5-7 cümlə): nə aşkar etdiniz, nə tövsiyə edirsiniz?"
+  ]
+};
+
+const ADMIN_PWD="admin2024";
+const grade=p=>p>=90?{l:"Əla 🏆",c:"#22d3a5",e:"🏆"}:p>=75?{l:"Yaxşı ⭐",c:"#60a5fa",e:"⭐"}:p>=60?{l:"Kafi 📈",c:"#fbbf24",e:"📈"}:{l:"Zəif 📚",c:"#ff5f7e",e:"📚"};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let S={
+  screen:"home", // home|quiz|result|admin-login|admin
+  name:"",surname:"",
+  qi:0,ans:{},sel:null,showExp:false,
+  oi:0,openAns:{},taskAns:{},
+  t0:0,result:null,
+  participants:[],
+
+  saving:false
+};
+
+function setState(patch){Object.assign(S,patch);render();}
+
+// ═══════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════
+function render(){
+  const app=document.getElementById("app");
+  app.innerHTML="";
+  const el=buildScreen();
+  app.appendChild(el);
+}
+
+function el(tag,attrs={},children=[]){
+  const e=document.createElement(tag);
+  for(const[k,v]of Object.entries(attrs)){
+    if(k==="style")Object.assign(e.style,v);
+    else if(k==="class")e.className=v;
+    else if(k.startsWith("on"))e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="html")e.innerHTML=v;
+    else e.setAttribute(k,v);
+  }
+  for(const c of children){
+    if(c==null||c===false||c===undefined)continue;
+    if(typeof c==="string"||typeof c==="number")e.appendChild(document.createTextNode(String(c)));
+    else e.appendChild(c);
+  }
+  return e;
+}
+const div=(a,c)=>el("div",a,c);
+const btn=(a,c)=>el("button",a,c);
+const inp=(a)=>el("input",a);
+const span=(a,c)=>el("span",a,c);
+const p=(a,c)=>el("p",a,c);
+const h=(t,a,c)=>el("h"+t,a,c);
+
+function card(style={},children=[]){
+  return div({class:"card",style},{...children});
+}
+
+function buildScreen(){
+  switch(S.screen){
+    case"home":return buildHome();
+    case"quiz":return buildQuiz();
+    case"result":return buildResult();
+
+    default:return buildHome();
+  }
+}
+
+// ═══════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════
+function buildHome(){
+  const wrap=div({style:{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px",position:"relative"}});
+
+  // Deco circles
+  const c1=div({style:{position:"fixed",top:"-20%",right:"-10%",width:"500px",height:"500px",borderRadius:"50%",background:"radial-gradient(circle,rgba(155,77,255,.12),transparent 70%)",pointerEvents:"none"}});
+  const c2=div({style:{position:"fixed",bottom:"-10%",left:"-5%",width:"400px",height:"400px",borderRadius:"50%",background:"radial-gradient(circle,rgba(200,121,255,.07),transparent 70%)",pointerEvents:"none"}});
+  document.body.appendChild(c1);document.body.appendChild(c2);
+
+  const inner=div({style:{textAlign:"center",maxWidth:"680px",width:"100%",animation:"fadeUp .5s ease both"}});
+
+  // Badge
+  const badge=div({style:{display:"inline-flex",alignItems:"center",gap:"8px",padding:"6px 16px",borderRadius:"20px",background:"rgba(155,77,255,.12)",border:"1px solid rgba(155,77,255,.3)",marginBottom:"28px"}});
+  const dot=div({style:{width:"7px",height:"7px",borderRadius:"50%",background:"var(--a)",animation:"pulse 2s infinite"}});
+  badge.appendChild(dot);
+  badge.appendChild(span({class:"mono",style:{fontSize:"11px",color:"var(--a2)",letterSpacing:"2px"}},"ADVANCED LEVEL · 2024"));
+  inner.appendChild(badge);
+
+  // Title
+  const title=div({style:{marginBottom:"28px"}});
+  const t1=h(1,{class:"syne",style:{fontSize:"clamp(32px,6vw,52px)",fontWeight:"800",lineHeight:"1.1",background:"linear-gradient(135deg,#f0e6ff,#c879ff,#9b4dff)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"Excel Data");
+  const t2=h(2,{class:"syne",style:{fontSize:"clamp(18px,3vw,28px)",fontWeight:"600",color:"var(--t2)",marginTop:"4px"}},"Analitika — Advanced Quiz");
+  title.appendChild(t1);title.appendChild(t2);
+  inner.appendChild(title);
+
+  // Stats
+  const stats=div({style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"12px",marginBottom:"28px"}});
+  [["100","Çoxseçimli"],["5","Açıq Sual"],["1","Real Tapşırıq"],["30/70","Sint/Analiz"]].forEach(([v,l])=>{
+    const c=div({class:"card",style:{padding:"16px 8px",textAlign:"center"}});
+    c.appendChild(div({class:"mono",style:{fontSize:"22px",fontWeight:"700",color:"var(--a2)",marginBottom:"4px"}},v));
+    c.appendChild(div({style:{fontSize:"11px",color:"var(--t3)"}},l));
+    stats.appendChild(c);
+  });
+  inner.appendChild(stats);
+
+  // Buttons
+  const btns=div({style:{display:"flex",gap:"12px",justifyContent:"center",flexWrap:"wrap"}});
+  const startBtn=btn({style:{padding:"16px 44px",borderRadius:"14px",background:"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontSize:"16px",fontWeight:"800",boxShadow:"0 8px 32px rgba(155,77,255,.45)",transition:"transform .2s"},
+    onMouseenter:e=>{e.target.style.transform="translateY(-2px)"},
+    onMouseleave:e=>{e.target.style.transform=""},
+    onClick:()=>setState({screen:"quiz",t0:Date.now(),qi:0,ans:{},sel:null,showExp:false,oi:0,openAns:{},taskAns:{}})
+  },"🚀 Quiz Başlat");
+  btns.appendChild(startBtn);
+  inner.appendChild(btns);
+
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+// ═══════════════════════════════════════════
+// ADMIN LOGIN
+// ═══════════════════════════════════════════
+function buildAdminLogin(){
+  const wrap=div({style:{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"20px"}});
+  const card=div({class:"card glow",style:{padding:"48px 40px",width:"100%",maxWidth:"400px",animation:"fadeUp .4s ease"}});
+  card.appendChild(div({style:{textAlign:"center",marginBottom:"32px"}},[
+    div({style:{fontSize:"52px",marginBottom:"12px",display:"inline-block",animation:"float 3s ease-in-out infinite"}},"🔐"),
+    div({class:"syne",style:{fontSize:"22px",fontWeight:"800",color:"var(--a2)",marginBottom:"6px"}},"Admin Paneli"),
+    div({style:{color:"var(--t3)",fontSize:"14px"}},"Giriş üçün parolu daxil edin")
+  ]));
+  const pwdInp=inp({type:"password",placeholder:"Parol...",style:{width:"100%",padding:"14px 16px",borderRadius:"12px",border:"1px solid var(--bd2)",background:"rgba(255,255,255,.07)",color:"#fff",fontSize:"15px",marginBottom:"12px",outline:"none",boxSizing:"border-box"}});
+  pwdInp.value=S.adminPwd;
+  pwdInp.addEventListener("input",e=>S.adminPwd=e.target.value);
+  pwdInp.addEventListener("keydown",e=>{if(e.key==="Enter")loginAdmin();});
+  card.appendChild(pwdInp);
+  if(S.adminErr)card.appendChild(div({style:{color:"var(--re)",marginBottom:"12px",textAlign:"center",fontSize:"13px"}},S.adminErr));
+  card.appendChild(btn({style:{width:"100%",padding:"14px",borderRadius:"12px",background:"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontSize:"15px",fontWeight:"700",marginBottom:"10px",boxShadow:"0 4px 20px rgba(155,77,255,.4)"},onClick:loginAdmin},"Daxil ol →"));
+  card.appendChild(btn({style:{width:"100%",padding:"12px",borderRadius:"12px",background:"transparent",border:"1px solid rgba(255,255,255,.1)",color:"var(--t3)",fontSize:"13px"},onClick:()=>setState({screen:"home"})},"← Geri"));
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function loginAdmin(){
+  if(S.adminPwd===ADMIN_PWD){
+    setState({screen:"admin",adminErr:"",adminTab:"overview",adminSel:null});
+    loadAdminData();
+  }else{setState({adminErr:"Parol yanlışdır!"});}
+}
+
+async function loadAdminData(){
+  const list=await dbLoad();
+  setState({participants:list});
+}
+
+// ═══════════════════════════════════════════
+// QUIZ
+// ═══════════════════════════════════════════
+function buildQuiz(){
+  if(S.qi>=QS.length&&S.screen==="quiz"){
+    // Move to open questions
+    setState({screen:"quiz-open"});
+    return buildOpenQ();
+  }
+  const q=QS[S.qi];
+  const prog=((S.qi+1)/QS.length*100).toFixed(1);
+  const wrap=div({style:{maxWidth:"840px",margin:"0 auto",padding:"20px 20px 40px"}});
+
+  // Header
+  const hdr=div({style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"8px"}});
+  const left=div({style:{display:"flex",alignItems:"center",gap:"10px"}});
+  left.appendChild(span({class:"syne",style:{fontWeight:"700",color:"var(--a2)",fontSize:"16px"}},[
+    span({},(S.qi+1).toString()),span({style:{color:"var(--t3)",fontSize:"13px"}},"/"+QS.length)
+  ]));
+  const catStyle=q.cat==="Sintaksis"?{background:"rgba(96,165,250,.12)",color:"var(--bl)",border:"1px solid rgba(96,165,250,.25)"}:{background:"rgba(155,77,255,.12)",color:"var(--a2)",border:"1px solid rgba(155,77,255,.25)"};
+  left.appendChild(span({style:{padding:"3px 10px",borderRadius:"12px",fontSize:"11px",fontWeight:"700",...catStyle}},q.cat));
+  hdr.appendChild(left);
+  hdr.appendChild(span({style:{color:"var(--t3)",fontSize:"13px"}},S.name+" "+S.surname));
+  wrap.appendChild(hdr);
+
+  // Progress bar
+  const pb=div({style:{height:"4px",background:"rgba(255,255,255,.07)",borderRadius:"2px",marginBottom:"20px",overflow:"hidden"}});
+  pb.appendChild(div({style:{height:"100%",width:prog+"%",background:"linear-gradient(90deg,var(--a3),var(--a2))",borderRadius:"2px",transition:"width .4s"}}));
+  wrap.appendChild(pb);
+
+  // Question card
+  const qCard=div({class:"card fu",style:{padding:"28px",marginBottom:"16px"}});
+  qCard.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--t3)",marginBottom:"14px",letterSpacing:"1px"}},"// SUAL "+q.id));
+  qCard.appendChild(p({style:{fontSize:"16px",lineHeight:"1.75",color:"var(--t)",marginBottom:"28px",fontWeight:"500"}},q.q));
+
+  // Options
+  const opts=div({style:{display:"flex",flexDirection:"column",gap:"10px"}});
+  q.o.forEach((opt,idx)=>{
+    let bg="rgba(255,255,255,.04)",border="1px solid rgba(255,255,255,.08)",color="var(--t2)",icon="";
+    if(S.sel!==null){
+      if(idx===q.c){bg="rgba(34,211,165,.1)";border="1px solid rgba(34,211,165,.5)";color="var(--gr)";icon="✓";}
+      else if(idx===S.sel){bg="rgba(255,95,126,.1)";border="1px solid rgba(255,95,126,.4)";color="var(--re)";icon="✗";}
+    }
+    const b=btn({style:{padding:"14px 18px",borderRadius:"12px",background:bg,border,color,textAlign:"left",fontSize:"14px",lineHeight:"1.5",cursor:S.sel!==null?"default":"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:"10px",width:"100%"},
+      onClick:()=>pickAnswer(idx)
+    });
+    b.appendChild(span({class:"mono",style:{fontSize:"12px",opacity:".5",minWidth:"20px"}},["A","B","C","D"][idx]));
+    b.appendChild(span({style:{flex:"1"}},opt));
+    if(icon)b.appendChild(span({style:{fontWeight:"800",fontSize:"14px"}},icon));
+    if(S.sel===null){
+      b.addEventListener("mouseenter",()=>{b.style.background="rgba(155,77,255,.08)";b.style.borderColor="var(--bd2)";});
+      b.addEventListener("mouseleave",()=>{b.style.background="rgba(255,255,255,.04)";b.style.borderColor="rgba(255,255,255,.08)";});
+    }
+    opts.appendChild(b);
+  });
+  qCard.appendChild(opts);
+
+  // Explanation
+  if(S.showExp){
+    const ex=div({class:"fi",style:{marginTop:"20px",padding:"18px",borderRadius:"14px",
+      background:S.sel===q.c?"rgba(34,211,165,.08)":"rgba(155,77,255,.08)",
+      border:"1px solid "+(S.sel===q.c?"rgba(34,211,165,.25)":"rgba(155,77,255,.25)")}});
+    const hh=div({style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}});
+    hh.appendChild(span({style:{fontSize:"18px"}},S.sel===q.c?"✅":"💡"));
+    hh.appendChild(span({style:{fontWeight:"700",color:S.sel===q.c?"var(--gr)":"var(--a2)",fontSize:"14px"}},S.sel===q.c?"Düzgün cavab!":"Doğru cavab:"));
+    if(S.sel!==q.c)hh.appendChild(span({style:{color:"var(--gr)",fontSize:"13px",fontWeight:"600"}},q.o[q.c]));
+    ex.appendChild(hh);
+    ex.appendChild(p({style:{color:"var(--t2)",fontSize:"13px",lineHeight:"1.7"}},q.e));
+    qCard.appendChild(ex);
+  }
+  wrap.appendChild(qCard);
+
+  if(S.showExp){
+    const nb=btn({style:{float:"right",padding:"13px 32px",borderRadius:"12px",background:"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontSize:"14px",fontWeight:"700",boxShadow:"0 4px 16px rgba(155,77,255,.35)"},
+      onClick:nextQ
+    },S.qi<QS.length-1?"Növbəti →":"Açıq suallara →");
+    wrap.appendChild(nb);
+  }
+  return wrap;
+}
+
+function pickAnswer(idx){
+  if(S.sel!==null)return;
+  setState({sel:idx,ans:{...S.ans,[QS[S.qi].id]:idx},showExp:true});
+}
+
+function nextQ(){
+  if(S.qi<QS.length-1)setState({qi:S.qi+1,sel:null,showExp:false});
+  else setState({screen:"quiz-open",qi:QS.length,sel:null,showExp:false});
+}
+
+// ═══════════════════════════════════════════
+// OPEN QUESTIONS
+// ═══════════════════════════════════════════
+function buildOpenQ(){
+  const oq=OQS[S.oi];
+  const wrap=div({style:{maxWidth:"800px",margin:"0 auto",padding:"28px 20px"}});
+
+  // Header
+  const hdr=div({style:{display:"flex",alignItems:"center",gap:"12px",marginBottom:"20px"}});
+  hdr.appendChild(div({style:{width:"40px",height:"40px",borderRadius:"10px",background:"rgba(200,121,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",flexShrink:"0"}},"💬"));
+  const ht=div();
+  ht.appendChild(div({class:"syne",style:{fontWeight:"700",color:"var(--a2)"}},"Açıq Suallar"));
+  ht.appendChild(div({style:{fontSize:"12px",color:"var(--t3)"}},(S.oi+1)+" / "+OQS.length+" · "+S.name+" "+S.surname));
+  hdr.appendChild(ht);
+  hdr.appendChild(btn({style:{padding:"7px 14px",borderRadius:"9px",background:"rgba(255,95,126,.1)",border:"1px solid rgba(255,95,126,.25)",color:"var(--re)",fontSize:"12px",fontWeight:"700"},
+    onClick:()=>{if(confirm("Açıq sualları atlayıb bitirmək istəyirsiniz?")){afterOpenQ();setState({screen:"quiz-task"});}}},"⏹ Bitir"));
+  wrap.appendChild(hdr);
+
+  // Progress dots
+  const dots=div({style:{display:"flex",gap:"6px",marginBottom:"24px"}});
+  OQS.forEach((_,i)=>{
+    dots.appendChild(div({style:{height:"4px",flex:"1",borderRadius:"2px",background:i<S.oi?"var(--gr)":i===S.oi?"var(--a)":"rgba(255,255,255,.1)"}}));
+  });
+  wrap.appendChild(dots);
+
+  // Card
+  const c=div({class:"card",style:{padding:"28px",marginBottom:"16px"}});
+  c.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--a2)",fontWeight:"700",marginBottom:"12px",letterSpacing:"1px"}},"// AÇIQ SUAL "+(S.oi+1)));
+  c.appendChild(p({style:{color:"var(--t)",lineHeight:"1.8",fontSize:"15px",marginBottom:"24px"}},oq.q));
+
+  const ta=el("textarea",{placeholder:"Ətraflı cavabınızı yazın... (minimum 150 simvol)",
+    style:{width:"100%",minHeight:"180px",padding:"16px",borderRadius:"12px",border:"1px solid var(--bd)",background:"rgba(255,255,255,.04)",color:"var(--t)",fontSize:"14px",lineHeight:"1.7",resize:"vertical",boxSizing:"border-box",outline:"none"}});
+  ta.value=S.openAns[oq.id]||"";
+  ta.addEventListener("input",e=>{S.openAns={...S.openAns,[oq.id]:e.target.value};
+    const cl=ta.parentElement.querySelector(".char-count");
+    if(cl){cl.textContent=e.target.value.length+" / 150 "+( e.target.value.length>=150?"✓":"");}
+  });
+  c.appendChild(ta);
+
+  const footer=div({style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:"12px"}});
+  const cc=span({class:"mono char-count",style:{fontSize:"12px",color:"var(--ye)"}},(S.openAns[oq.id]||"").length+" / 150");
+  footer.appendChild(cc);
+  const nb=btn({style:{padding:"11px 28px",borderRadius:"10px",background:"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontWeight:"700",fontSize:"14px"},
+    onClick:()=>{
+      if(S.oi<OQS.length-1){
+        setState({oi:S.oi+1});
+      } else {
+        afterOpenQ(); // send open question answers to Telegram
+        setState({screen:"quiz-task"});
+      }
+    }
+  },S.oi===OQS.length-1?"Real Tapşırığa →":"Növbəti →");
+  footer.appendChild(nb);
+  c.appendChild(footer);
+  wrap.appendChild(c);
+  return wrap;
+}
+
+// ═══════════════════════════════════════════
+// TASK
+// ═══════════════════════════════════════════
+function buildTask(){
+  const wrap=div({style:{maxWidth:"900px",margin:"0 auto",padding:"28px 20px"}});
+
+  // Header card
+  const hc=div({class:"card",style:{padding:"20px 24px",marginBottom:"20px",background:"linear-gradient(135deg,rgba(155,77,255,.15),rgba(109,40,217,.1))",borderColor:"rgba(155,77,255,.4)"}});
+  const hr=div({style:{display:"flex",alignItems:"center",gap:"14px",flexWrap:"wrap"}});
+  hr.appendChild(div({style:{fontSize:"36px"}},"📊"));
+  const ht=div();
+  ht.appendChild(div({class:"syne",style:{fontSize:"20px",fontWeight:"800",color:"var(--a2)",marginBottom:"4px"}},"Real İş Tapşırığı — AzərTech Distribution"));
+  ht.appendChild(div({style:{fontSize:"13px",color:"var(--t3)"}},'Siz "AzərTech Distribution" şirkətinin analitikisiniz. Satış direktoru Fərid bəy aşağıdakı məlumatı göndərib:'));
+  hr.appendChild(ht);
+  hc.appendChild(hr);
+  wrap.appendChild(hc);
+
+  // Data table
+  const tc=div({class:"card",style:{padding:"24px",marginBottom:"16px",overflowX:"auto"}});
+  tc.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--a2)",fontWeight:"700",marginBottom:"16px",letterSpacing:"1px"}},"// MƏLUMAT CƏDVƏLİ"));
+  const table=el("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:"13px"}});
+  const thead=el("thead");
+  const tr=el("tr",{style:{borderBottom:"1px solid var(--bd)"}});
+  ["Ay","Bakı","Gəncə","Sumqayıt","Lənkəran","Top Məhsul","Xərc"].forEach(h=>{
+    tr.appendChild(el("th",{style:{padding:"8px 10px",textAlign:"left",color:"var(--a2)",fontSize:"11px",fontWeight:"700",fontFamily:"JetBrains Mono",whiteSpace:"nowrap"}},h));
+  });
+  thead.appendChild(tr);table.appendChild(thead);
+  const tbody=el("tbody");
+  TASK.data.forEach(r=>{
+    const row=el("tr",{style:{borderBottom:"1px solid rgba(255,255,255,.04)"}});
+    row.appendChild(el("td",{style:{padding:"9px 10px",color:"var(--t)",fontWeight:"600"}},r.ay));
+    [r.baki,r.gence,r.sumqayit,r.lenkaran].forEach(v=>{
+      row.appendChild(el("td",{class:"mono",style:{padding:"9px 10px",color:"var(--t2)"}},v.toLocaleString()));
+    });
+    const mCol=r.mehsul==="Elektronika"?"var(--bl)":r.mehsul==="Geyim"?"var(--a2)":"var(--gr)";
+    const mBg=r.mehsul==="Elektronika"?"rgba(96,165,250,.15)":r.mehsul==="Geyim"?"rgba(200,121,255,.15)":"rgba(34,211,165,.15)";
+    const badge=span({style:{padding:"3px 8px",borderRadius:"4px",fontSize:"11px",fontWeight:"600",background:mBg,color:mCol}},r.mehsul);
+    const mTd=el("td",{style:{padding:"9px 10px"}});mTd.appendChild(badge);row.appendChild(mTd);
+    row.appendChild(el("td",{class:"mono",style:{padding:"9px 10px",color:"var(--re)"}},r.xerc.toLocaleString()));
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);tc.appendChild(table);
+  wrap.appendChild(tc);
+
+  // Tasks
+  TASK.tasks.forEach((task,i)=>{
+    const c=div({class:"card",style:{padding:"20px",marginBottom:"14px"}});
+    const hr=div({style:{display:"flex",gap:"12px",alignItems:"flex-start",marginBottom:"12px"}});
+    hr.appendChild(div({class:"mono",style:{width:"28px",height:"28px",borderRadius:"8px",background:"rgba(155,77,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:"0",fontSize:"12px",fontWeight:"800",color:"var(--a2)"}},String(i+1)));
+    hr.appendChild(p({style:{color:"var(--t)",fontSize:"14px",lineHeight:"1.7",margin:"0"}},task));
+    c.appendChild(hr);
+    const ta=el("textarea",{placeholder:"Cavabınız...",
+      style:{width:"100%",minHeight:"100px",padding:"14px",borderRadius:"10px",border:"1px solid var(--bd)",background:"rgba(255,255,255,.04)",color:"var(--t)",fontSize:"13px",lineHeight:"1.6",resize:"vertical",boxSizing:"border-box",outline:"none"}});
+    ta.value=S.taskAns["t"+i]||"";
+    ta.addEventListener("input",e=>{S.taskAns["t"+i]=e.target.value;});
+    c.appendChild(ta);
+    wrap.appendChild(c);
+  });
+
+  // Finish
+  const fb=div({style:{textAlign:"right",marginTop:"8px"}});
+  const finBtn=btn({
+    style:{padding:"14px 40px",borderRadius:"14px",background:S.saving?"rgba(255,255,255,.1)":"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontSize:"16px",fontWeight:"800",boxShadow:S.saving?"none":"0 6px 24px rgba(155,77,255,.4)"},
+    onClick:finishQuiz
+  },S.saving?"Saxlanılır...":"🎯 Quizi Bitir");
+  fb.appendChild(finBtn);
+  wrap.appendChild(fb);
+  return wrap;
+}
+
+// ═══════════════════════════════════════════
+// TELEGRAM
+// ═══════════════════════════════════════════
+const TG_TOKEN = "8634051934:AAGFHVvU2bEIwu-YIziBSFSYLI0EMdIVXGM";
+const TG_CHAT  = "7475331834";
+
+async function tgSend(text){
+  // Use GET with URLSearchParams - works cross-origin (Telegram allows GET for sendMessage)
+  try{
+    const url="https://api.telegram.org/bot"+TG_TOKEN+"/sendMessage"
+      +"?chat_id="+encodeURIComponent(TG_CHAT)
+      +"&text="+encodeURIComponent(text);
+    const res=await fetch(url,{method:"GET",mode:"cors"});
+    const json=await res.json();
+    console.log("TG sent:",json.ok);
+  }catch(e){
+    // Fallback: script tag JSONP-style
+    console.log("TG fetch failed:",e);
+    try{
+      const s=document.createElement("script");
+      s.src="https://api.telegram.org/bot"+TG_TOKEN+"/sendMessage"
+        +"?chat_id="+encodeURIComponent(TG_CHAT)
+        +"&text="+encodeURIComponent(text.substring(0,400));
+      document.head.appendChild(s);
+      await new Promise(r=>setTimeout(r,2000));
+      s.remove();
+    }catch(e2){console.log("TG fallback failed:",e2);}
+  }
+}
+
+async function tgBlock(name,blockNum,qs,ans){
+  // Send results for questions blockNum*20 to blockNum*20+19
+  const NL="\n";
+  const start=blockNum*20;
+  const end=start+20;
+  const blockQs=qs.slice(start,end);
+  const correct=blockQs.filter(q=>ans[q.id]===q.c).length;
+  const wrong=blockQs.filter(q=>ans[q.id]!==q.c);
+  const wlist=wrong.map((q,i)=>
+    (i+1)+". S"+q.id+": "+q.q.substring(0,50)+"..."+NL+
+    "   Cavab: "+(q.o[ans[q.id]]||"Bos").substring(0,35)+NL+
+    "   Dogru: "+q.o[q.c].substring(0,35)
+  ).join(NL);
+  const msg=[
+    "=== BLOK "+(blockNum+1)+"/5 === "+name,
+    "Suallar: "+(start+1)+"-"+end,
+    "Dogru: "+correct+"/20",
+    "Yanlish: "+wrong.length+"/20",
+    wrong.length>0?"------ Yanlishlar ------":"Hamisi dogru! ",
+    wlist
+  ].filter(Boolean).join(NL);
+  await tgSend(msg);
+}
+
+async function tgOpenQ(name,openAns){
+  const NL="\n";
+  const lines=["oq1","oq2","oq3","oq4","oq5"].map((id,i)=>
+    "--- Aciq "+(i+1)+" ---"+NL+(openAns[id]||"Cavablanmayib").substring(0,300)
+  ).join(NL);
+  const msg=["ACIQ SUALLAR - "+name,"================================",lines].join(NL);
+  await tgSend(msg);
+}
+
+async function tgTask(name,taskAns,dur){
+  const NL="\n";
+  const lines=[0,1,2,3,4].map(i=>
+    "--- Tapshiriq "+(i+1)+" ---"+NL+(taskAns["t"+i]||"Cavablanmayib").substring(0,300)
+  ).join(NL);
+  const msg=["REAL TAPSHIRIQ - "+name+" ("+dur+" deq)","================================",lines].join(NL);
+  await tgSend(msg);
+}
+
+// ═══════════════════════════════════════════
+// FINISH
+// ═══════════════════════════════════════════
+async function finishQuiz(){
+  if(S.saving)return;
+  setState({saving:true});
+  const score=QS.reduce((a,q)=>a+(S.ans[q.id]===q.c?1:0),0);
+  const pct=Math.round(score/QS.length*100);
+  const wrong=QS.filter(q=>S.ans[q.id]!==q.c);
+  const dur=Math.round((Date.now()-S.t0)/60000);
+  const name=S.name+" "+S.surname;
+  const result={name,score,total:QS.length,pct,ans:S.ans,openAns:S.openAns,taskAns:S.taskAns,completedAt:new Date().toLocaleString("az-AZ"),dur};
+  // Save to DB
+  dbSave(result).catch(()=>{});
+  // Send task answers to Telegram (non-blocking)
+  tgTask(name,S.taskAns,dur).catch(()=>{});
+  setState({saving:false,result,screen:"result"});
+}
+
+// Called when 100 questions done - sends 5 blocks of 20
+async function after100(){
+  const name=S.name+" "+S.surname;
+  for(let i=0;i<5;i++){
+    await tgBlock(name,i,QS,S.ans);
+  }
+}
+
+// Called when open questions done
+async function afterOpenQ(){
+  tgOpenQ(S.name+" "+S.surname,S.openAns).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════
+// RESULT
+// ═══════════════════════════════════════════
+function buildResult(){
+  const r=S.result;
+  const g=grade(r.pct);
+  const synt=QS.filter(q=>q.cat==="Sintaksis"&&r.ans[q.id]===q.c).length;
+  const anal=QS.filter(q=>q.cat==="Analiz"&&r.ans[q.id]===q.c).length;
+
+  const wrap=div({style:{maxWidth:"640px",margin:"0 auto",padding:"40px 20px"}});
+  const c=div({class:"card glow fu",style:{padding:"40px 32px",textAlign:"center"}});
+  c.appendChild(div({style:{fontSize:"60px",marginBottom:"12px",display:"inline-block",animation:"float 3s ease-in-out infinite"}},g.e));
+  c.appendChild(div({class:"syne",style:{fontSize:"26px",fontWeight:"800",color:"var(--t)",marginBottom:"4px"}},r.name));
+  c.appendChild(div({style:{color:"var(--t3)",marginBottom:"32px",fontSize:"13px"}},r.completedAt+" · "+r.dur+" dəqiqə"));
+
+  // Ring SVG
+  const ring=buildRing(r.pct,110);
+  c.appendChild(ring);
+  c.appendChild(div({class:"syne",style:{fontSize:"22px",fontWeight:"700",color:g.c,marginTop:"12px",marginBottom:"32px"}},g.l));
+
+  // Stats grid
+  const sg=div({style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px",marginBottom:"32px"}});
+  [["Doğru",r.score+"/"+r.total,"var(--a2)"],["Sintaksis",synt+"/30","var(--bl)"],["Analiz",anal+"/70","var(--gr)"],["Müddət",r.dur+"dəq","var(--ye)"]].forEach(([l,v,col])=>{
+    const s=div({style:{background:"rgba(255,255,255,.05)",borderRadius:"12px",padding:"14px 8px",textAlign:"center"}});
+    s.appendChild(div({class:"mono",style:{fontSize:"18px",fontWeight:"700",color:col,marginBottom:"4px"}},v));
+    s.appendChild(div({style:{fontSize:"11px",color:"var(--t3)"}},l));
+    sg.appendChild(s);
+  });
+  c.appendChild(sg);
+
+  c.appendChild(btn({style:{padding:"14px 36px",borderRadius:"12px",background:"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontSize:"15px",fontWeight:"700",boxShadow:"0 4px 20px rgba(155,77,255,.35)"},
+    onClick:()=>setState({screen:"home"})
+  },"🏠 Ana Səhifə"));
+
+  wrap.appendChild(c);
+  return wrap;
+}
+
+function buildRing(pct,size){
+  const r=28,cx=40,cy=40,circ=2*Math.PI*r;
+  const g=grade(pct);
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  svg.setAttribute("width",size);svg.setAttribute("height",size);svg.setAttribute("viewBox","0 0 80 80");
+  const bg=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  bg.setAttribute("cx",cx);bg.setAttribute("cy",cy);bg.setAttribute("r",r);
+  bg.setAttribute("fill","none");bg.setAttribute("stroke","rgba(255,255,255,.07)");bg.setAttribute("stroke-width","8");
+  svg.appendChild(bg);
+  const arc=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  arc.setAttribute("cx",cx);arc.setAttribute("cy",cy);arc.setAttribute("r",r);
+  arc.setAttribute("fill","none");arc.setAttribute("stroke",g.c);arc.setAttribute("stroke-width","8");
+  arc.setAttribute("stroke-dasharray",circ);arc.setAttribute("stroke-dashoffset",circ*(1-pct/100));
+  arc.setAttribute("stroke-linecap","round");arc.setAttribute("transform","rotate(-90 "+cx+" "+cy+")");
+  arc.style.transition="stroke-dashoffset 1s ease";
+  svg.appendChild(arc);
+  const txt=document.createElementNS("http://www.w3.org/2000/svg","text");
+  txt.setAttribute("x",cx);txt.setAttribute("y",cy+1);txt.setAttribute("text-anchor","middle");
+  txt.setAttribute("dominant-baseline","middle");txt.setAttribute("fill",g.c);
+  txt.setAttribute("font-size","15");txt.setAttribute("font-weight","800");txt.setAttribute("font-family","Syne");
+  txt.textContent=pct+"%";
+  svg.appendChild(txt);
+  return svg;
+}
+
+// ═══════════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════════
+function buildAdmin(){
+  const wrap=div({style:{maxWidth:"1100px",margin:"0 auto",padding:"28px 20px",position:"relative"}});
+
+  // Toast
+  if(S.newAlert){
+    const toast=div({style:{position:"fixed",top:"24px",right:"24px",zIndex:"9999",background:"linear-gradient(135deg,rgba(34,211,165,.95),rgba(16,185,129,.95))",borderRadius:"16px",padding:"16px 22px",boxShadow:"0 8px 32px rgba(34,211,165,.4)",animation:"fadeUp .4s ease",display:"flex",alignItems:"center",gap:"14px",maxWidth:"320px"}});
+    toast.appendChild(div({style:{fontSize:"28px",animation:"pulse 1s infinite"}},"🎉"));
+    const tt=div();
+    tt.appendChild(div({style:{fontWeight:"800",color:"#fff",fontSize:"15px",fontFamily:"Syne"}},S.newAlert.name));
+    tt.appendChild(div({style:{color:"rgba(255,255,255,.85)",fontSize:"13px"}},"Quiz bitirdi — "+S.newAlert.pct+"%"));
+    toast.appendChild(tt);
+    wrap.appendChild(toast);
+  }
+
+  // Header
+  const hdr=div({style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"24px",flexWrap:"wrap",gap:"12px"}});
+  const hl=div({style:{display:"flex",alignItems:"center",gap:"14px"}});
+  const htxt=div();
+  const titleRow=div({style:{display:"flex",alignItems:"center",gap:"10px",marginBottom:"4px"}});
+  titleRow.appendChild(div({class:"syne",style:{fontSize:"26px",fontWeight:"800",color:"var(--a2)"}},"🎛️ Admin Paneli"));
+  // LIVE badge
+  const lb=div({style:{display:"flex",alignItems:"center",gap:"5px",padding:"3px 10px",borderRadius:"20px",background:S.pulse?"rgba(34,211,165,.25)":"rgba(34,211,165,.12)",border:"1px solid rgba(34,211,165,.35)",transition:"background .3s"}});
+  lb.appendChild(div({style:{width:"7px",height:"7px",borderRadius:"50%",background:"var(--gr)",animation:"pulse 1.5s infinite"}}));
+  lb.appendChild(span({class:"mono",style:{fontSize:"10px",fontWeight:"800",color:"var(--gr)",letterSpacing:"1px"}},"LIVE"));
+  titleRow.appendChild(lb);
+  htxt.appendChild(titleRow);
+  htxt.appendChild(div({class:"mono",style:{fontSize:"12px",color:"var(--t3)"}},S.participants.length+" iştirakçı · 🌐 bütün cihazlar · hər 4 san yenilənir"));
+  hl.appendChild(htxt);
+  hdr.appendChild(hl);
+
+  const btns=div({style:{display:"flex",gap:"8px"}});
+  btns.appendChild(btn({style:{padding:"10px 18px",borderRadius:"10px",background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",color:"var(--t3)",fontSize:"13px"},onClick:()=>setState({screen:"home"})},"← Ana Səhifə"));
+  btns.appendChild(btn({style:{padding:"10px 16px",borderRadius:"10px",background:"rgba(255,95,126,.1)",border:"1px solid rgba(255,95,126,.25)",color:"var(--re)",fontSize:"13px",fontWeight:"600"}},
+    "🗑️ Sıfırla"
+  ).addEventListener("click",()=>{if(confirm("Bütün məlumat silinsin?")){dbClear().then(()=>setState({participants:[]}));}}));
+  // Re-add the button properly
+  const delBtn=btn({style:{padding:"10px 16px",borderRadius:"10px",background:"rgba(255,95,126,.1)",border:"1px solid rgba(255,95,126,.25)",color:"var(--re)",fontSize:"13px",fontWeight:"600"},
+    onClick:async()=>{if(confirm("Bütün iştirakçı məlumatları silinsin?")){await dbClear();setState({participants:[]});}}
+  },"🗑️ Sıfırla");
+  btns.appendChild(delBtn);
+  hdr.appendChild(btns);
+  wrap.appendChild(hdr);
+
+  // Tabs
+  if(S.adminSel){
+    wrap.appendChild(buildParticipantDetail(S.adminSel));
+    return wrap;
+  }
+
+  const tabs=div({style:{display:"flex",gap:"8px",marginBottom:"24px",borderBottom:"1px solid var(--bd)",paddingBottom:"12px"}});
+  [["overview","📊 İcmal"],["ranking","🏆 Sıralama"],["analytics","📈 Analitika"]].forEach(([t,l])=>{
+    tabs.appendChild(btn({style:{padding:"8px 18px",borderRadius:"10px",border:"none",background:S.adminTab===t?"var(--a)":"transparent",color:S.adminTab===t?"#fff":"var(--t3)",fontWeight:"600",fontSize:"13px",transition:"all .2s"},
+      onClick:()=>setState({adminTab:t})
+    },l));
+  });
+  wrap.appendChild(tabs);
+
+  if(S.participants.length===0){
+    const empty=div({class:"card",style:{padding:"60px 40px",textAlign:"center",borderColor:"rgba(155,77,255,.2)"}});
+    empty.appendChild(div({style:{fontSize:"52px",marginBottom:"16px",display:"inline-block",animation:"float 3s ease-in-out infinite"}},"⏳"));
+    empty.appendChild(div({class:"syne",style:{fontSize:"18px",color:"var(--t2)",marginBottom:"8px"}},"İştirakçılar gözlənilir..."));
+    empty.appendChild(div({style:{color:"var(--t3)",fontSize:"13px",marginBottom:"24px"}},"Quiz tamamlandıqdan sonra avtomatik görünəcək"));
+    const liveBadge=div({style:{display:"inline-flex",alignItems:"center",gap:"8px",padding:"8px 18px",borderRadius:"20px",background:"rgba(34,211,165,.08)",border:"1px solid rgba(34,211,165,.2)"}});
+    liveBadge.appendChild(div({style:{width:"7px",height:"7px",borderRadius:"50%",background:"var(--gr)",animation:"pulse 1.5s infinite"}}));
+    liveBadge.appendChild(span({class:"mono",style:{fontSize:"12px",color:"var(--gr)",fontWeight:"700"}},"🌐 CANLI İZLƏMƏ AKTİVDİR"));
+    empty.appendChild(liveBadge);
+    wrap.appendChild(empty);
+    return wrap;
+  }
+
+  if(S.adminTab==="overview")wrap.appendChild(buildOverview());
+  if(S.adminTab==="ranking")wrap.appendChild(buildRanking());
+  if(S.adminTab==="analytics")wrap.appendChild(buildAnalytics());
+
+  return wrap;
+}
+
+function buildOverview(){
+  const frag=document.createDocumentFragment();
+  const ps=S.participants;
+  const sorted=[...ps].sort((a,b)=>b.pct-a.pct);
+  const avg=ps.length?Math.round(ps.reduce((a,p)=>a+p.pct,0)/ps.length):0;
+  const mx=ps.length?Math.max(...ps.map(p=>p.pct)):0;
+  const mn=ps.length?Math.min(...ps.map(p=>p.pct)):0;
+  const pass=ps.filter(p=>p.pct>=60).length;
+
+  // KPI cards
+  const kpis=div({style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"14px",marginBottom:"24px"}});
+  [["İştirakçı",ps.length,"👥","var(--a2)"],["Ortalama",avg+"%","📊","var(--bl)"],["Ən Yüksək",mx+"%","🏆","var(--gr)"],["Ən Aşağı",mn+"%","📉","var(--re)"],["Keçdi (60%+)",pass+"/"+ps.length,"✅","var(--ye)"]].forEach(([l,v,ic,c])=>{
+    const k=div({class:"card",style:{padding:"20px",textAlign:"center"}});
+    k.appendChild(div({style:{fontSize:"24px",marginBottom:"6px"}},ic));
+    k.appendChild(div({class:"mono",style:{fontSize:"22px",fontWeight:"700",color:c,marginBottom:"4px"}},String(v)));
+    k.appendChild(div({style:{fontSize:"11px",color:"var(--t3)"}},l));
+    kpis.appendChild(k);
+  });
+  frag.appendChild(kpis);
+
+  // Grade dist + recent
+  const row2=div({style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"24px"}});
+
+  const gd=div({class:"card",style:{padding:"24px"}});
+  gd.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--t3)",marginBottom:"16px",letterSpacing:"1px"}},"// QİYMƏT PAYLANMASI"));
+  const grades={ela:0,yaxsi:0,kafi:0,zeif:0};
+  ps.forEach(p=>{if(p.pct>=90)grades.ela++;else if(p.pct>=75)grades.yaxsi++;else if(p.pct>=60)grades.kafi++;else grades.zeif++;});
+  [["Əla (90%+)",grades.ela,"var(--gr)"],["Yaxşı (75-89%)",grades.yaxsi,"var(--bl)"],["Kafi (60-74%)",grades.kafi,"var(--ye)"],["Zəif (<60%)",grades.zeif,"var(--re)"]].forEach(([l,v,c])=>{
+    const row=div({style:{marginBottom:"12px"}});
+    const lrow=div({style:{display:"flex",justifyContent:"space-between",marginBottom:"4px"}});
+    lrow.appendChild(span({style:{fontSize:"12px",color:"var(--t2)"}},l));
+    lrow.appendChild(span({class:"mono",style:{fontSize:"12px",color:c}},String(v)));
+    row.appendChild(lrow);
+    const bar=div({style:{height:"6px",background:"rgba(255,255,255,.06)",borderRadius:"3px",overflow:"hidden"}});
+    bar.appendChild(div({style:{height:"100%",width:(ps.length?v/ps.length*100:0)+"%",background:c,borderRadius:"3px"}}));
+    row.appendChild(bar);
+    gd.appendChild(row);
+  });
+  row2.appendChild(gd);
+
+  const rec=div({class:"card",style:{padding:"24px"}});
+  rec.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--t3)",marginBottom:"16px",letterSpacing:"1px"}},"// SON İŞTIRAKÇILAR"));
+  [...ps].reverse().slice(0,5).forEach((p,i)=>{
+    const g=grade(p.pct);
+    const row=div({style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<4?"1px solid rgba(255,255,255,.04)":"none"}});
+    const ld=div();
+    ld.appendChild(div({style:{fontSize:"13px",color:"var(--t)",fontWeight:"600"}},p.name));
+    ld.appendChild(div({style:{fontSize:"11px",color:"var(--t3)"}},p.completedAt));
+    row.appendChild(ld);
+    row.appendChild(div({class:"mono",style:{fontSize:"16px",fontWeight:"700",color:g.c}},p.pct+"%"));
+    rec.appendChild(row);
+  });
+  row2.appendChild(rec);
+  frag.appendChild(row2);
+
+  // Full table
+  const tc=div({class:"card",style:{overflow:"hidden"}});
+  const thead=div({style:{padding:"16px 20px",borderBottom:"1px solid var(--bd)",display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px",flexWrap:"wrap"}});
+  thead.appendChild(div({class:"syne",style:{fontWeight:"700",color:"var(--t2)"}},"Bütün İştirakçılar"));
+  const si=inp({placeholder:"Ad axtar...",style:{padding:"7px 14px",borderRadius:"8px",border:"1px solid var(--bd)",background:"rgba(255,255,255,.05)",color:"var(--t)",fontSize:"13px",outline:"none",width:"200px"}});
+  si.value=S.search;
+  si.addEventListener("input",e=>{S.search=e.target.value;render();});
+  thead.appendChild(si);
+  tc.appendChild(thead);
+
+  const tableWrap=div({style:{overflowX:"auto"}});
+  const table=el("table",{style:{width:"100%",borderCollapse:"collapse"}});
+  const hrow=el("tr",{style:{borderBottom:"1px solid var(--bd)"}});
+  ["#","İştirakçı","Nəticə","Doğru","Sint","Analiz","Müddət","Tarix",""].forEach(h=>{
+    hrow.appendChild(el("th",{style:{padding:"10px 14px",textAlign:"left",fontSize:"11px",color:"var(--t3)",fontWeight:"700",fontFamily:"JetBrains Mono",whiteSpace:"nowrap"}},h));
+  });
+  const thd=el("thead");thd.appendChild(hrow);table.appendChild(thd);
+
+  const tbdy=el("tbody");
+  const filtered=sorted.filter(p=>p.name.toLowerCase().includes(S.search.toLowerCase()));
+  filtered.forEach((p,i)=>{
+    const g=grade(p.pct);
+    const s=QS.filter(q=>q.cat==="Sintaksis"&&p.ans[q.id]===q.c).length;
+    const a=QS.filter(q=>q.cat==="Analiz"&&p.ans[q.id]===q.c).length;
+    const isNew=S.newAlert&&S.newAlert.name===p.name;
+    const row=el("tr",{style:{borderBottom:"1px solid rgba(255,255,255,.04)",background:isNew?"rgba(34,211,165,.06)":"transparent",transition:"background .4s"}});
+    row.addEventListener("mouseenter",()=>row.style.background=isNew?"rgba(34,211,165,.1)":"rgba(155,77,255,.05)");
+    row.addEventListener("mouseleave",()=>row.style.background=isNew?"rgba(34,211,165,.06)":"transparent");
+
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[span({class:"mono",style:{color:"var(--t3)",fontSize:"12px"}},(i+1).toString())]));
+    const nameCell=el("td",{style:{padding:"12px 14px"}});
+    const nameDiv=div({style:{display:"flex",alignItems:"center",gap:"8px"}});
+    nameDiv.appendChild(div({style:{fontWeight:"600",color:"var(--t)",fontSize:"14px"}},p.name));
+    if(isNew)nameDiv.appendChild(span({style:{padding:"2px 7px",borderRadius:"4px",background:"rgba(34,211,165,.2)",border:"1px solid rgba(34,211,165,.4)",fontSize:"9px",fontWeight:"800",color:"var(--gr)",fontFamily:"JetBrains Mono",letterSpacing:"1px"}},"YENİ"));
+    nameCell.appendChild(nameDiv);row.appendChild(nameCell);
+
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[span({class:"mono",style:{fontSize:"17px",fontWeight:"800",color:g.c}},p.pct+"%")]));
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[span({class:"mono",style:{color:"var(--t2)",fontSize:"13px"}},p.score+"/"+p.total)]));
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[span({style:{padding:"3px 8px",borderRadius:"5px",background:"rgba(96,165,250,.1)",color:"var(--bl)",fontSize:"12px",fontFamily:"JetBrains Mono"}},s+"/30")]));
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[span({style:{padding:"3px 8px",borderRadius:"5px",background:"rgba(155,77,255,.1)",color:"var(--a2)",fontSize:"12px",fontFamily:"JetBrains Mono"}},a+"/70")]));
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[span({class:"mono",style:{color:"var(--t3)",fontSize:"12px"}},p.dur+"dəq")]));
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[span({style:{color:"var(--t3)",fontSize:"12px"}},p.completedAt)]));
+    const detBtn=btn({style:{padding:"6px 14px",borderRadius:"7px",background:"rgba(155,77,255,.15)",border:"1px solid rgba(155,77,255,.3)",color:"var(--a2)",fontSize:"12px",fontWeight:"600"},
+      onClick:()=>setState({adminSel:p.name,adminDetTab:"wrong",expandQ:null})
+    },"Detal");
+    row.appendChild(el("td",{style:{padding:"12px 14px"}},[detBtn]));
+    tbdy.appendChild(row);
+  });
+  table.appendChild(tbdy);tableWrap.appendChild(table);tc.appendChild(tableWrap);
+  frag.appendChild(tc);
+  return frag;
+}
+
+function buildRanking(){
+  const sorted=[...S.participants].sort((a,b)=>b.pct-a.pct);
+  const frag=document.createDocumentFragment();
+  const medals=["🥇","🥈","🥉"];
+  sorted.forEach((p,i)=>{
+    const g=grade(p.pct);
+    const isNew=S.newAlert&&S.newAlert.name===p.name;
+    const c=div({class:"card",style:{padding:"16px 20px",display:"flex",alignItems:"center",gap:"16px",flexWrap:"wrap",marginBottom:"10px",
+      borderColor:isNew?"rgba(34,211,165,.5)":i<3?"rgba(155,77,255,.35)":"var(--bd)",
+      background:isNew?"rgba(34,211,165,.07)":i===0?"rgba(155,77,255,.1)":i===1?"rgba(96,165,250,.06)":i===2?"rgba(200,121,255,.06)":"var(--s2)",
+      transition:"all .3s"}});
+    c.appendChild(div({style:{width:"36px",textAlign:"center",fontSize:i<3?"22px":"15px",color:i<3?"var(--a2)":"var(--t3)",fontWeight:"700",fontFamily:"JetBrains Mono"}},i<3?medals[i]:(i+1).toString()));
+    const nd=div({style:{flex:"1",minWidth:"120px"}});
+    const nr=div({style:{display:"flex",alignItems:"center",gap:"8px"}});
+    nr.appendChild(div({style:{fontWeight:"700",color:"var(--t)",fontSize:"15px"}},p.name));
+    if(isNew)nr.appendChild(span({style:{padding:"2px 7px",borderRadius:"4px",background:"rgba(34,211,165,.2)",border:"1px solid rgba(34,211,165,.4)",fontSize:"9px",fontWeight:"800",color:"var(--gr)",fontFamily:"JetBrains Mono",letterSpacing:"1px"}},"YENİ"));
+    nd.appendChild(nr);
+    nd.appendChild(div({style:{fontSize:"11px",color:"var(--t3)"}},p.completedAt));
+    c.appendChild(nd);
+    const bar=div({style:{flex:"2",minWidth:"120px"}});
+    const bp=div({style:{height:"8px",background:"rgba(255,255,255,.06)",borderRadius:"4px",overflow:"hidden"}});
+    bp.appendChild(div({style:{height:"100%",width:p.pct+"%",background:g.c,borderRadius:"4px"}}));
+    bar.appendChild(bp);c.appendChild(bar);
+    c.appendChild(div({class:"mono",style:{fontSize:"22px",fontWeight:"800",color:g.c,minWidth:"60px",textAlign:"right"}},p.pct+"%"));
+    c.appendChild(div({style:{color:"var(--t3)",fontSize:"13px"}},p.score+"/"+p.total));
+    c.appendChild(btn({style:{padding:"6px 14px",borderRadius:"7px",background:"rgba(155,77,255,.12)",border:"1px solid rgba(155,77,255,.25)",color:"var(--a2)",fontSize:"12px",fontWeight:"600"},
+      onClick:()=>setState({adminSel:p.name,adminDetTab:"wrong",expandQ:null})
+    },"Detal"));
+    frag.appendChild(c);
+  });
+  return frag;
+}
+
+function buildAnalytics(){
+  const frag=document.createDocumentFragment();
+  const ps=S.participants;if(!ps.length)return frag;
+
+  // Hardest questions
+  const hq=div({class:"card",style:{padding:"24px",marginBottom:"20px"}});
+  hq.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--t3)",marginBottom:"20px",letterSpacing:"1px"}},"// ƏN ÇƏTIN SUALLAR (ən az doğru cavablanan)"));
+  const qstats=QS.map(q=>{
+    const correct=ps.filter(p=>p.ans[q.id]===q.c).length;
+    const pct=Math.round(correct/ps.length*100);
+    return{...q,pct,correct};
+  }).sort((a,b)=>a.pct-b.pct).slice(0,10);
+  qstats.forEach(q=>{
+    const row=div({style:{marginBottom:"12px"}});
+    const lr=div({style:{display:"flex",justifyContent:"space-between",marginBottom:"4px",alignItems:"center",gap:"8px"}});
+    lr.appendChild(div({style:{fontSize:"12px",color:"var(--t2)",flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},
+      "[S"+q.id+"] "+q.q.substring(0,55)+(q.q.length>55?"...":"")));
+    lr.appendChild(span({class:"mono",style:{fontSize:"12px",color:q.pct>=70?"var(--gr)":q.pct>=40?"var(--ye)":"var(--re)",flexShrink:"0"}},q.pct+"%"));
+    row.appendChild(lr);
+    const b=div({style:{height:"6px",background:"rgba(255,255,255,.05)",borderRadius:"3px",overflow:"hidden"}});
+    b.appendChild(div({style:{height:"100%",width:q.pct+"%",background:q.pct>=70?"var(--gr)":q.pct>=40?"var(--ye)":"var(--re)",borderRadius:"3px"}}));
+    row.appendChild(b);hq.appendChild(row);
+  });
+  frag.appendChild(hq);
+
+  // Category comparison
+  const cats=div({style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px"}});
+  ["Sintaksis","Analiz"].forEach((cat,ci)=>{
+    const qs=QS.filter(q=>q.cat===cat);
+    const avg=Math.round(qs.reduce((a,q)=>{
+      const c=ps.filter(p=>p.ans[q.id]===q.c).length;
+      return a+c/ps.length*100;
+    },0)/qs.length);
+    const col=ci===0?"var(--bl)":"var(--a2)";
+    const c=div({class:"card",style:{padding:"24px"}});
+    c.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--t3)",marginBottom:"12px",letterSpacing:"1px"}},"// "+cat.toUpperCase()));
+    c.appendChild(div({class:"mono",style:{fontSize:"36px",fontWeight:"800",color:col,marginBottom:"4px"}},avg+"%"));
+    c.appendChild(div({style:{fontSize:"13px",color:"var(--t3)",marginBottom:"16px"}},"ortalama doğruluq ("+qs.length+" sual)"));
+    const b=div({style:{height:"8px",background:"rgba(255,255,255,.06)",borderRadius:"4px",overflow:"hidden"}});
+    b.appendChild(div({style:{height:"100%",width:avg+"%",background:ci===0?"var(--bl)":"var(--a)",borderRadius:"4px"}}));
+    c.appendChild(b);cats.appendChild(c);
+  });
+  frag.appendChild(cats);
+  return frag;
+}
+
+function buildParticipantDetail(name){
+  const u=S.participants.find(p=>p.name===name);
+  if(!u)return div({},"Tapılmadı");
+  const g=grade(u.pct);
+  const synt=QS.filter(q=>q.cat==="Sintaksis"&&u.ans[q.id]===q.c).length;
+  const anal=QS.filter(q=>q.cat==="Analiz"&&u.ans[q.id]===q.c).length;
+  const wrong=QS.filter(q=>u.ans[q.id]!==q.c);
+  const right=QS.filter(q=>u.ans[q.id]===q.c);
+
+  const frag=document.createDocumentFragment();
+  frag.appendChild(btn({style:{background:"transparent",border:"none",color:"var(--a2)",fontSize:"14px",marginBottom:"20px",padding:"8px 0",cursor:"pointer"},
+    onClick:()=>setState({adminSel:null})
+  },"← Siyahıya qayıt"));
+
+  // User header card
+  const uhc=div({class:"card glow",style:{padding:"28px",marginBottom:"20px",background:"linear-gradient(135deg,rgba(155,77,255,.1),rgba(109,40,217,.08))"}});
+  const uh=div({style:{display:"flex",gap:"20px",alignItems:"center",flexWrap:"wrap"}});
+  uh.appendChild(buildRing(u.pct,90));
+  const ud=div({style:{flex:"1"}});
+  ud.appendChild(div({class:"syne",style:{fontSize:"24px",fontWeight:"800",color:"var(--t)",marginBottom:"4px"}},u.name));
+  ud.appendChild(div({style:{color:"var(--t3)",fontSize:"13px",marginBottom:"12px"}},u.completedAt+" · "+u.dur+" dəq · "+g.l));
+  const sg=div({style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px"}});
+  [["Ümumi",u.score+"/"+u.total,"var(--a2)"],["Yanlış",(u.total-u.score),"var(--re)"],["Sint",synt+"/30","var(--bl)"],["Analiz",anal+"/70","var(--gr)"]].forEach(([l,v,c])=>{
+    const s=div({style:{background:"rgba(255,255,255,.05)",borderRadius:"10px",padding:"10px 8px",textAlign:"center"}});
+    s.appendChild(div({class:"mono",style:{fontSize:"16px",fontWeight:"700",color:c}},String(v)));
+    s.appendChild(div({style:{fontSize:"11px",color:"var(--t3)",marginTop:"2px"}},l));
+    sg.appendChild(s);
+  });
+  ud.appendChild(sg);uh.appendChild(ud);uhc.appendChild(uh);
+  frag.appendChild(uhc);
+
+  // Detail tabs
+  const tabs=div({style:{display:"flex",gap:"8px",marginBottom:"18px",flexWrap:"wrap"}});
+  [["wrong","❌ Yanlış ("+wrong.length+")"],["right","✅ Doğru ("+right.length+")"],["open","💬 Açıq Suallar"],["task","📊 Real Tapşırıq"]].forEach(([t,l])=>{
+    tabs.appendChild(btn({style:{padding:"9px 16px",borderRadius:"10px",border:"none",background:S.adminDetTab===t?"var(--a)":"rgba(255,255,255,.05)",color:S.adminDetTab===t?"#fff":"var(--t3)",fontWeight:"600",fontSize:"13px"},
+      onClick:()=>setState({adminDetTab:t,expandQ:null})
+    },l));
+  });
+  frag.appendChild(tabs);
+
+  if(S.adminDetTab==="wrong"){
+    if(wrong.length===0){
+      const ok=div({style:{textAlign:"center",padding:"48px",color:"var(--gr)",fontSize:"18px"}},"🏆 Bütün sualları doğru cavabladı!");
+      frag.appendChild(ok);
+    }else{
+      wrong.forEach(q=>{
+        const c=div({class:"card",style:{padding:"20px",marginBottom:"12px",borderColor:"rgba(255,95,126,.2)",cursor:"pointer"}});
+        c.addEventListener("click",()=>setState({expandQ:S.expandQ===q.id?null:q.id}));
+        const cr=div({style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"10px"}});
+        const cl=div({style:{flex:"1"}});
+        cl.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--re)",fontWeight:"700",marginBottom:"6px"}},"❌ SUAL "+q.id+" · "+q.cat));
+        cl.appendChild(p({style:{color:"var(--t)",margin:"0",fontSize:"14px",lineHeight:"1.6"}},q.q));
+        cr.appendChild(cl);cr.appendChild(div({style:{color:"var(--t3)",fontSize:"12px",flexShrink:"0"}},S.expandQ===q.id?"▲":"▼"));
+        c.appendChild(cr);
+        if(S.expandQ===q.id){
+          const ex=div({class:"fi",style:{marginTop:"16px",display:"flex",flexDirection:"column",gap:"8px"}});
+          const wa=div({style:{padding:"10px 14px",borderRadius:"9px",background:"rgba(255,95,126,.08)",border:"1px solid rgba(255,95,126,.2)"}});
+          wa.appendChild(span({style:{color:"var(--re)",fontSize:"11px",fontWeight:"700"}},"İştirakçının cavabı: "));
+          wa.appendChild(span({style:{color:"#ffaab8",fontSize:"13px"}},q.o[u.ans[q.id]]||"Cavablanmayıb"));
+          ex.appendChild(wa);
+          const ca=div({style:{padding:"10px 14px",borderRadius:"9px",background:"rgba(34,211,165,.08)",border:"1px solid rgba(34,211,165,.2)"}});
+          ca.appendChild(span({style:{color:"var(--gr)",fontSize:"11px",fontWeight:"700"}},"✓ Doğru: "));
+          ca.appendChild(span({style:{color:"#6ee7d1",fontSize:"13px"}},q.o[q.c]));
+          ex.appendChild(ca);
+          const ep=div({style:{padding:"12px 14px",borderRadius:"9px",background:"rgba(155,77,255,.08)",border:"1px solid rgba(155,77,255,.2)"}});
+          ep.appendChild(span({style:{color:"var(--a2)",fontSize:"11px",fontWeight:"700"}},"💡 İzah: "));
+          ep.appendChild(span({style:{color:"var(--t2)",fontSize:"13px",lineHeight:"1.7"}},q.e));
+          ex.appendChild(ep);
+          c.appendChild(ex);
+        }
+        frag.appendChild(c);
+      });
+    }
+  }
+
+  if(S.adminDetTab==="right"){
+    const grid=div({style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"10px"}});
+    right.forEach(q=>{
+      const c=div({class:"card",style:{padding:"14px 16px",borderColor:"rgba(34,211,165,.15)"}});
+      c.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--gr)",fontWeight:"700",marginBottom:"6px"}},"✓ S"+q.id+" · "+q.cat));
+      c.appendChild(p({style:{color:"var(--t2)",margin:"0",fontSize:"13px",lineHeight:"1.5"}},q.q.substring(0,80)+(q.q.length>80?"...":"")));
+      grid.appendChild(c);
+    });
+    frag.appendChild(grid);
+  }
+
+  if(S.adminDetTab==="open"){
+    OQS.forEach((oq,i)=>{
+      const c=div({class:"card",style:{padding:"22px",marginBottom:"14px"}});
+      c.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--a2)",fontWeight:"700",marginBottom:"10px",letterSpacing:"1px"}},"💬 AÇIQ SUAL "+(i+1)));
+      c.appendChild(p({style:{color:"var(--t2)",marginBottom:"14px",lineHeight:"1.7",fontSize:"14px"}},oq.q));
+      const ans=div({style:{padding:"16px",borderRadius:"10px",background:"rgba(155,77,255,.07)",border:"1px solid rgba(155,77,255,.15)"}});
+      ans.appendChild(div({style:{fontSize:"11px",color:"var(--t3)",marginBottom:"6px",fontFamily:"JetBrains Mono"}},"İŞTIRAKÇININ CAVABI:"));
+      ans.appendChild(p({style:{color:"var(--t)",margin:"0",lineHeight:"1.8",fontSize:"14px",whiteSpace:"pre-wrap"}},u.openAns&&u.openAns[oq.id]||"(Cavab verilməyib)"));
+      c.appendChild(ans);
+      frag.appendChild(c);
+    });
+  }
+
+  if(S.adminDetTab==="task"){
+    frag.appendChild(div({class:"card",style:{padding:"18px",marginBottom:"14px",background:"rgba(155,77,255,.07)",borderColor:"rgba(155,77,255,.2)"}},[
+      div({class:"mono",style:{fontSize:"11px",color:"var(--a2)",fontWeight:"700",marginBottom:"8px"}},"📊 REAL İŞ TAPŞIRIĞI — AzərTech Distribution"),
+      p({style:{color:"var(--t3)",fontSize:"13px",margin:"0"}},"İştirakçının 5 analitik tapşırığa verdiyi cavablar")
+    ]));
+    TASK.tasks.forEach((task,i)=>{
+      const c=div({class:"card",style:{padding:"20px",marginBottom:"14px"}});
+      const tr=div({style:{display:"flex",gap:"10px",alignItems:"flex-start",marginBottom:"12px"}});
+      tr.appendChild(div({class:"mono",style:{width:"26px",height:"26px",borderRadius:"6px",background:"rgba(155,77,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:"0",fontSize:"11px",fontWeight:"800",color:"var(--a2)"}},(i+1).toString()));
+      tr.appendChild(p({style:{color:"var(--t2)",fontSize:"13px",margin:"0",lineHeight:"1.6"}},task));
+      c.appendChild(tr);
+      const ab=div({style:{padding:"14px",borderRadius:"10px",background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.07)"}});
+      ab.appendChild(p({style:{color:"var(--t)",margin:"0",lineHeight:"1.8",fontSize:"13px",whiteSpace:"pre-wrap"}},(u.taskAns&&u.taskAns["t"+i])||"(Cavab verilməyib)"));
+      c.appendChild(ab);frag.appendChild(c);
+    });
+  }
+
+  return frag;
+}
+
+// ═══════════════════════════════════════════
+// SCREEN ROUTER FIX
+// ═══════════════════════════════════════════
+const _buildScreen=buildScreen;
+function buildScreen(){
+  switch(S.screen){
+    case"home":return buildHome();
+    case"quiz":return buildQuiz();
+    case"quiz-open":return buildOpenQ();
+    case"quiz-task":return buildTask();
+    case"result":return buildResult();
+
+    default:return buildHome();
+  }
+}
+
+// ═══════════════════════════════════════════
+// QUIZ NAME STEP
+// ═══════════════════════════════════════════
+// Override quiz start to go to registration first
+function buildQuiz(){
+  // If no name, show registration
+  if(!S.name){
+    return buildRegister();
+  }
+  if(S.qi>=QS.length){
+    if(S.screen!=="quiz-open")setState({screen:"quiz-open"});
+    return buildOpenQ();
+  }
+  return buildQuizQ();
+}
+
+function buildRegister(){
+  const wrap=div({style:{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:"20px"}});
+  const c=div({class:"card glow",style:{padding:"48px 40px",width:"100%",maxWidth:"460px",animation:"fadeUp .4s ease"}});
+  c.appendChild(div({style:{textAlign:"center",marginBottom:"36px"}},[
+    div({style:{fontSize:"52px",marginBottom:"14px",display:"inline-block",animation:"float 3s ease-in-out infinite"}},"👤"),
+    div({class:"syne",style:{fontSize:"24px",fontWeight:"800",color:"var(--a2)",marginBottom:"6px"}},"Qeydiyyat"),
+    div({style:{color:"var(--t3)",fontSize:"14px"}},"Quiz başlamadan əvvəl adınızı daxil edin")
+  ]));
+  [["Ad","Adınız...","name"],["Soyad","Soyadınız...","surname"]].forEach(([l,ph,field],idx)=>{
+    const lbl=div({style:{marginBottom:"18px"}});
+    lbl.appendChild(el("label",{style:{display:"block",color:"var(--a2)",marginBottom:"7px",fontSize:"13px",fontWeight:"700",letterSpacing:".5px"}},l.toUpperCase()));
+    const i=inp({type:"text",placeholder:ph,style:{width:"100%",padding:"13px 16px",borderRadius:"12px",border:"1px solid var(--bd2)",background:"rgba(255,255,255,.06)",color:"var(--t)",fontSize:"15px",boxSizing:"border-box",outline:"none"}});
+    i.value=S[field]||"";
+    i.addEventListener("input",e=>{S[field]=e.target.value;});
+    i.addEventListener("keydown",e=>{if(e.key==="Enter"&&idx===1&&S.name&&S.surname)startQuizNow();});
+    lbl.appendChild(i);c.appendChild(lbl);
+  });
+  c.appendChild(btn({style:{width:"100%",padding:"14px",borderRadius:"12px",background:"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontSize:"15px",fontWeight:"700",marginBottom:"10px",boxShadow:"0 4px 20px rgba(155,77,255,.4)"},onClick:startQuizNow},"Başlat →"));
+  c.appendChild(btn({style:{width:"100%",padding:"12px",borderRadius:"12px",background:"transparent",border:"1px solid rgba(255,255,255,.08)",color:"var(--t3)",fontSize:"13px"},onClick:()=>setState({screen:"home"})},"← Geri"));
+  wrap.appendChild(c);return wrap;
+}
+
+function startQuizNow(){
+  if(!S.name||!S.surname){alert("Ad və soyad daxil edin!");return;}
+  setState({t0:Date.now(),qi:0,ans:{},sel:null,showExp:false,oi:0,openAns:{},taskAns:{},screen:"quiz"});
+}
+
+function buildQuizQ(){
+  const q=QS[S.qi];
+  const prog=((S.qi+1)/QS.length*100).toFixed(1);
+  const wrap=div({style:{maxWidth:"840px",margin:"0 auto",padding:"20px 20px 40px"}});
+  const hdr=div({style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"8px"}});
+  const left=div({style:{display:"flex",alignItems:"center",gap:"10px"}});
+  left.appendChild(div({class:"syne",style:{fontWeight:"700",color:"var(--a2)",fontSize:"16px"}},(S.qi+1)+"/"+QS.length));
+  const catS=q.cat==="Sintaksis"?{background:"rgba(96,165,250,.12)",color:"var(--bl)",border:"1px solid rgba(96,165,250,.25)"}:{background:"rgba(155,77,255,.12)",color:"var(--a2)",border:"1px solid rgba(155,77,255,.25)"};
+  left.appendChild(span({style:{padding:"3px 10px",borderRadius:"12px",fontSize:"11px",fontWeight:"700",...catS}},q.cat));
+  const right=div({style:{display:"flex",alignItems:"center",gap:"10px"}});
+  right.appendChild(span({style:{color:"var(--t3)",fontSize:"13px"}},S.name+" "+S.surname));
+  right.appendChild(btn({style:{padding:"7px 14px",borderRadius:"9px",background:"rgba(255,95,126,.1)",border:"1px solid rgba(255,95,126,.25)",color:"var(--re)",fontSize:"12px",fontWeight:"700"},
+    onClick:()=>{if(confirm("Quizi bitirmək istəyirsiniz? Nəticəniz Telegramа göndəriləcək.")){after100();setState({screen:"quiz-task"});}}},"⏹ Bitir"));
+  hdr.appendChild(left);hdr.appendChild(right);
+  wrap.appendChild(hdr);
+  const pb=div({style:{height:"4px",background:"rgba(255,255,255,.07)",borderRadius:"2px",marginBottom:"20px",overflow:"hidden"}});
+  pb.appendChild(div({style:{height:"100%",width:prog+"%",background:"linear-gradient(90deg,var(--a3),var(--a2))",borderRadius:"2px"}}));
+  wrap.appendChild(pb);
+  const qc=div({class:"card fu",style:{padding:"28px",marginBottom:"16px"}});
+  qc.appendChild(div({class:"mono",style:{fontSize:"11px",color:"var(--t3)",marginBottom:"14px",letterSpacing:"1px"}},"// SUAL "+q.id));
+  qc.appendChild(p({style:{fontSize:"16px",lineHeight:"1.75",color:"var(--t)",marginBottom:"28px",fontWeight:"500"}},q.q));
+  const opts=div({style:{display:"flex",flexDirection:"column",gap:"10px"}});
+  q.o.forEach((opt,idx)=>{
+    let bg="rgba(255,255,255,.04)",border="1px solid rgba(255,255,255,.08)",color="var(--t2)",icon="";
+    if(S.sel!==null){
+      if(idx===q.c){bg="rgba(34,211,165,.1)";border="1px solid rgba(34,211,165,.5)";color="var(--gr)";icon="✓";}
+      else if(idx===S.sel){bg="rgba(255,95,126,.1)";border="1px solid rgba(255,95,126,.4)";color="var(--re)";icon="✗";}
+    }
+    const b=btn({style:{padding:"14px 18px",borderRadius:"12px",background:bg,border,color,textAlign:"left",fontSize:"14px",lineHeight:"1.5",cursor:S.sel!==null?"default":"pointer",display:"flex",alignItems:"center",gap:"10px",width:"100%",transition:"all .2s"},onClick:()=>pickAnswerQ(idx)});
+    b.appendChild(span({class:"mono",style:{fontSize:"12px",opacity:".5",minWidth:"20px"}},["A","B","C","D"][idx]));
+    b.appendChild(span({style:{flex:"1"}},opt));
+    if(icon)b.appendChild(span({style:{fontWeight:"800",fontSize:"14px"}},icon));
+    if(S.sel===null){
+      b.addEventListener("mouseenter",()=>{b.style.background="rgba(155,77,255,.08)";b.style.borderColor="var(--bd2)";});
+      b.addEventListener("mouseleave",()=>{b.style.background="rgba(255,255,255,.04)";b.style.borderColor="rgba(255,255,255,.08)";});
+    }
+    opts.appendChild(b);
+  });
+  qc.appendChild(opts);
+  if(S.showExp){
+    const ex=div({class:"fi",style:{marginTop:"20px",padding:"18px",borderRadius:"14px",background:S.sel===q.c?"rgba(34,211,165,.08)":"rgba(155,77,255,.08)",border:"1px solid "+(S.sel===q.c?"rgba(34,211,165,.25)":"rgba(155,77,255,.25)")}});
+    const hh=div({style:{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px"}});
+    hh.appendChild(span({style:{fontSize:"18px"}},S.sel===q.c?"✅":"💡"));
+    hh.appendChild(span({style:{fontWeight:"700",color:S.sel===q.c?"var(--gr)":"var(--a2)",fontSize:"14px"}},S.sel===q.c?"Düzgün!":"Doğru:"));
+    if(S.sel!==q.c)hh.appendChild(span({style:{color:"var(--gr)",fontSize:"13px",fontWeight:"600"}},q.o[q.c]));
+    ex.appendChild(hh);ex.appendChild(p({style:{color:"var(--t2)",fontSize:"13px",lineHeight:"1.7"}},q.e));
+    qc.appendChild(ex);
+  }
+  wrap.appendChild(qc);
+  if(S.showExp){
+    const nb=div({style:{textAlign:"right"}});
+    nb.appendChild(btn({style:{padding:"13px 32px",borderRadius:"12px",background:"linear-gradient(135deg,var(--a),var(--a3))",color:"#fff",fontSize:"14px",fontWeight:"700",boxShadow:"0 4px 16px rgba(155,77,255,.35)"},onClick:nextQQ},S.qi<QS.length-1?"Növbəti →":"Açıq suallara →"));
+    wrap.appendChild(nb);
+  }
+  return wrap;
+}
+
+function pickAnswerQ(idx){
+  if(S.sel!==null)return;
+  setState({sel:idx,ans:{...S.ans,[QS[S.qi].id]:idx},showExp:true});
+}
+function nextQQ(){
+  const nextIdx=S.qi+1;
+  // Every 20 questions, send a block report (after q20, q40, q60, q80)
+  if(nextIdx>0 && nextIdx%20===0 && nextIdx<QS.length){
+    const blockNum=Math.floor(S.qi/20);
+    tgBlock(S.name+" "+S.surname,blockNum,QS,S.ans).catch(()=>{});
+  }
+  if(S.qi<QS.length-1){
+    setState({qi:nextIdx,sel:null,showExp:false});
+  } else {
+    // Send last block (81-100) then go to open questions
+    const lastBlock=Math.floor(S.qi/20);
+    tgBlock(S.name+" "+S.surname,lastBlock,QS,S.ans).catch(()=>{});
+    setState({screen:"quiz-open",qi:QS.length,sel:null,showExp:false});
+  }
+}
+
+// ═══════════════════════════════════════════
+// LIVE POLLING (admin panel)
+// ═══════════════════════════════════════════
+let pollInterval=null;
+const origSetState=setState;
+function setState(patch){
+  Object.assign(S,patch);
+  if(S.screen==="admin"&&!pollInterval){
+    pollInterval=setInterval(async()=>{
+      if(S.screen!=="admin"){clearInterval(pollInterval);pollInterval=null;return;}
+      const fresh=await dbLoad();
+      if(fresh.length>S.participants.length){
+        const prevNames=new Set(S.participants.map(p=>p.name));
+        const newOnes=fresh.filter(p=>!prevNames.has(p.name));
+        if(newOnes.length>0){
+          const newest=newOnes[newOnes.length-1];
+          S.newAlert={name:newest.name,pct:newest.pct};
+          S.pulse=true;
+          setTimeout(()=>{S.pulse=false;},600);
+          setTimeout(()=>{S.newAlert=null;if(S.screen==="admin")render();},5000);
+        }
+      }
+      S.participants=fresh.length>=S.participants.length?fresh:S.participants;
+      render();
+    },4000);
+  }
+  if(S.screen!=="admin"&&pollInterval){clearInterval(pollInterval);pollInterval=null;}
+  render();
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
